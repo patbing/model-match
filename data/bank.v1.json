@@ -1,0 +1,729 @@
+{
+ "schemaVersion": 1,
+ "bankVersion": "2026-10-09-v1",
+ "language": "en",
+ "source": {
+  "provider": "pollinations",
+  "generationMode": "build-time",
+  "runtimeApiCalls": false,
+  "modelList": [
+   "openai/gpt-5.4-nano",
+   "anthropic/claude-sonnet-5.5",
+   "google/gemini-3.8-flash",
+   "z-ai/glm-5.3-flash"
+  ],
+  "generatedOn": "2026-10-09"
+ },
+ "models": [
+  {
+   "key": "m1",
+   "apiModelId": "openai/gpt-5.4-nano",
+   "displayName": "GPT-5.4 Nano",
+   "styleNotes": [
+    "Tends to be terse and factual in these samples; often a single tight paragraph or a clean numbered list.",
+    "Rarely uses bold text or headings."
+   ]
+  },
+  {
+   "key": "m2",
+   "apiModelId": "anthropic/claude-sonnet-5.5",
+   "displayName": "Claude Sonnet 5.5",
+   "styleNotes": [
+    "Often uses bold lead-ins and tidy lists.",
+    "Warm, polished phrasing with a practical closing note."
+   ]
+  },
+  {
+   "key": "m3",
+   "apiModelId": "google/gemini-3.8-flash",
+   "displayName": "Gemini 3.8 Flash",
+   "styleNotes": [
+    "Reaches for vivid metaphors and sensory detail.",
+    "Longer, flowing sentences with emphatic dashes."
+   ]
+  },
+  {
+   "key": "m4",
+   "apiModelId": "z-ai/glm-5.3-flash",
+   "displayName": "GLM 5.3 Flash",
+   "styleNotes": [
+    "Compact, metaphor-first answers (\"Imagine a ...\").",
+    "Moves quickly to a clear recommendation."
+   ]
+  }
+ ],
+ "prompts": [
+  {
+   "id": "p18",
+   "category": "critique",
+   "difficulty": "easy",
+   "text": "'Meetings are always a waste of time.' One counterexample, under 50 words.",
+   "answers": [
+    {
+     "id": "p18-m1",
+     "modelKey": "m1",
+     "text": "Emergency incident response: a brief stand-up gathers the right people, shares live facts, assigns tasks, and prevents duplicated work. Within minutes, decisions are made and owners start acting immediately—meeting time becomes less than the delay from waiting for email updates."
+    },
+    {
+     "id": "p18-m2",
+     "modelKey": "m2",
+     "text": "During the 1986 Challenger investigation, a meeting where engineers voiced concerns about O-ring failures in cold weather mattered enormously. A well-run meeting that surfaces critical safety risks can prevent disasters, showing that meetings can be essential rather than wasteful."
+    },
+    {
+     "id": "p18-m3",
+     "modelKey": "m3",
+     "text": "During the Cuban Missile Crisis, President Kennedy’s Executive Committee meetings allowed advisers to debate alternatives to an immediate military strike. This high-stakes deliberation produced the naval blockade strategy, successfully de-escalating tensions and averting a catastrophic global nuclear war."
+    },
+    {
+     "id": "p18-m4",
+     "modelKey": "m4",
+     "text": "A surgical team's pre-operation huddle: five minutes confirming the patient, procedure, and each person's role measurably reduces errors and deaths. Skipping it would be malpractice—hardly a waste of time."
+    }
+   ]
+  },
+  {
+   "id": "p15",
+   "category": "creative",
+   "difficulty": "easy",
+   "text": "Two sentences: a cat that runs a tiny bookstore.",
+   "answers": [
+    {
+     "id": "p15-m1",
+     "modelKey": "m1",
+     "text": "A cat runs a tiny bookstore, padding between shelves as if every book were a favorite mouse.\nIts whiskers twitch at each new customer, and the shop smells of fresh ink and cozy adventures."
+    },
+    {
+     "id": "p15-m2",
+     "modelKey": "m2",
+     "text": "Marmalade the tabby spent her mornings arranging dusty paperbacks by color and her afternoons curled in the window display, charging customers one scratch behind the ears for every recommendation. Regulars swore she had a sixth sense for matching readers with books, usually nudging the perfect one off the shelf with a single paw."
+    },
+    {
+     "id": "p15-m3",
+     "modelKey": "m3",
+     "text": "Perched atop a leaning tower of paperbacks, Barnaby guided patrons to forgotten classics with a gentle flick of his tail. He accepted payment at the miniature register, though an ear scratch was always the preferred currency."
+    },
+    {
+     "id": "p15-m4",
+     "modelKey": "m4",
+     "text": "Marginalia the cat inherited the tiny bookstore from a retired professor and now conducts business from atop the register, flicking her tail at customers until they choose the right book. She takes payment in sardines, accepts belly rubs as tips, and has never once let anyone leave without finding exactly the story they didn't know they needed."
+    }
+   ]
+  },
+  {
+   "id": "p19",
+   "category": "critique",
+   "difficulty": "easy",
+   "text": "'AI will replace all programmers by 2030.' Brief critique, under 55 words.",
+   "answers": [
+    {
+     "id": "p19-m1",
+     "modelKey": "m1",
+     "text": "This claim is overly absolute. AI will likely automate portions of programming and change roles, shifting work toward designing, reviewing, testing, and integrating systems. New software demand and evolving platforms will also create jobs. Net effect: disruption and skill reshuffling, not total replacement by 2030."
+    },
+    {
+     "id": "p19-m2",
+     "modelKey": "m2",
+     "text": "This claim is overstated. Automation will absorb routine coding, but programming involves ambiguous requirements, system design, debugging, accountability, and stakeholder negotiation. Historically, higher-level tools have shifted the profession rather than eliminated it. Expect fewer rote tasks and changed roles, not total replacement within just a few years."
+    },
+    {
+     "id": "p19-m3",
+     "modelKey": "m3",
+     "text": "This prediction is unrealistic. Software engineering extends far beyond writing syntax; it requires complex problem-solving, system architecture, domain expertise, and interpreting human needs. By 2030, automation will handle routine coding and significantly boost developer productivity, evolving the programmer's role into that of a high-level system architect rather than eliminating it."
+    },
+    {
+     "id": "p19-m4",
+     "modelKey": "m4",
+     "text": "This claim overreaches. AI excels at code generation but can't own requirements, architecture trade-offs, or accountability for production systems. It augments developers rather than replacing them, shifting work toward design and oversight. Absolute predictions like \"all\" and fixed dates ignore the historical pattern: automation changes jobs faster than it eliminates them."
+    }
+   ]
+  },
+  {
+   "id": "p20",
+   "category": "critique",
+   "difficulty": "easy",
+   "text": "'Tests slow teams down.' Give one counterexample, under 50 words.",
+   "answers": [
+    {
+     "id": "p20-m1",
+     "modelKey": "m1",
+     "text": "After introducing automated regression tests in a payments service, the team caught integration errors within minutes. What used to take a full day of manual checking now takes an hour, allowing faster safe releases."
+    },
+    {
+     "id": "p20-m2",
+     "modelKey": "m2",
+     "text": "A team skipped tests to ship faster, then spent weeks firing off hotfixes, debugging regressions, and fearing every change. Another team with automated tests deployed multiple times daily, refactoring confidently. Tests removed the fear and rework that actually slowed the first team down."
+    },
+    {
+     "id": "p20-m3",
+     "modelKey": "m3",
+     "text": "Automated test suites enable continuous deployment, allowing teams to ship updates to production multiple times a day. Without tests, releases require weeks of slow, manual regression testing. Tests remove this bottleneck, radically accelerating the delivery cycle."
+    },
+    {
+     "id": "p20-m4",
+     "modelKey": "m4",
+     "text": "A team with a solid test suite can merge and deploy code within minutes, confident nothing broke. Without tests, every release needs days of manual QA plus debugging production incidents. Tests shift time from firefighting to shipping—accelerating, not slowing, the team."
+    }
+   ]
+  },
+  {
+   "id": "p14",
+   "category": "creative",
+   "difficulty": "easy",
+   "text": "Write a haiku about Monday mornings.",
+   "answers": [
+    {
+     "id": "p14-m1",
+     "modelKey": "m1",
+     "text": "Monday morning—\ncoffee breath warms quiet streets,\nalarms fade to hope."
+    },
+    {
+     "id": "p14-m2",
+     "modelKey": "m2",
+     "text": "Alarm cuts the dark,\ncoffee steams in sleepy hands—\nthe week begins slow."
+    },
+    {
+     "id": "p14-m3",
+     "modelKey": "m3",
+     "text": "Alarm breaks the dark,\nCoffee brews to heal the soul,\nThe long week begins."
+    },
+    {
+     "id": "p14-m4",
+     "modelKey": "m4",
+     "text": "**Monday Morning**\n\nAlarm breaks the dawn—\ncoffee chases dreams away,\nweekend fades to gray."
+    }
+   ]
+  },
+  {
+   "id": "p09",
+   "category": "tradeoffs",
+   "difficulty": "easy",
+   "text": "A five-person team must choose between fixing bugs and adding features first. Answer in under 50 words.",
+   "answers": [
+    {
+     "id": "p09-m1",
+     "modelKey": "m1",
+     "text": "Choose bug fixes first. Critical defects harm users immediately and can block feature work. A quick triage stabilizes the product, then add prioritized features with confidence. Coordinate: allocate most time to bugs, one track to low-risk feature prep, and reconvene after a short milestone."
+    },
+    {
+     "id": "p09-m2",
+     "modelKey": "m2",
+     "text": "Fix critical bugs first. Unstable software erodes user trust and slows future development. Triage: resolve severe, user-impacting bugs immediately, then alternate—say 70% features, 30% bugs. If a feature is a major revenue or competitive driver, ship a minimal version alongside essential fixes."
+    },
+    {
+     "id": "p09-m3",
+     "modelKey": "m3",
+     "text": "Fix critical bugs first. Building new features on an unstable foundation compounds technical debt and drives users away. A five-person team lacks the bandwidth to manage accumulating instability. Stabilize the core product to protect user retention and speed up future development, then shift focus to new features."
+    },
+    {
+     "id": "p09-m4",
+     "modelKey": "m4",
+     "text": "Fix critical bugs first—stability builds user trust and makes future features cheaper to ship. Then tackle features, ideally with a split (e.g., 2 on bugs, 3 on features) if bugs are minor. Let severity and user impact drive the priority, not habit."
+    }
+   ]
+  },
+  {
+   "id": "p17",
+   "category": "critique",
+   "difficulty": "easy",
+   "text": "'If it compiles, it works.' Give a brief counterpoint in under 50 words.",
+   "answers": [
+    {
+     "id": "p17-m1",
+     "modelKey": "m1",
+     "text": "Compiling only proves the code is syntactically valid, not logically correct. Bugs can still exist, edge cases may fail, and wrong assumptions may compile cleanly. “Works” should mean passing tests, correct behavior, and predictable performance—not just building successfully."
+    },
+    {
+     "id": "p17-m2",
+     "modelKey": "m2",
+     "text": "Compiling only proves your code is syntactically valid and type-correct. It says nothing about logic errors, wrong requirements, race conditions, bad edge-case handling, or performance problems. A program can compile flawlessly and still delete the wrong files, miscalculate totals, or crash under real-world load."
+    },
+    {
+     "id": "p17-m3",
+     "modelKey": "m3",
+     "text": "Compilation only guarantees correct syntax, not correct logic. A program can compile flawlessly while harboring infinite loops, security vulnerabilities, memory leaks, or completely wrong business logic. Syntactic validity does not equal functional correctness."
+    },
+    {
+     "id": "p17-m4",
+     "modelKey": "m4",
+     "text": "Compilation only verifies syntax and types—it says nothing about logic. Code can compile perfectly while crashing at runtime, mishandling edge cases, corrupting data, or simply solving the wrong problem. Bugs, race conditions, and design flaws all live comfortably in code that compiles flawlessly."
+    }
+   ]
+  },
+  {
+   "id": "p13",
+   "category": "creative",
+   "difficulty": "easy",
+   "text": "Write a two-sentence scene: a robot waiting at a bus stop in the rain.",
+   "answers": [
+    {
+     "id": "p13-m1",
+     "modelKey": "m1",
+     "text": "Rain slicked the pavement as the robot sat perfectly still at the bus stop, its joints sealed tight and its eyes reflecting the gray streetlights. A distant engine groaned closer, and when the bus finally hissed to a stop, the robot’s chest light blinked once—warm as a promise against the storm."
+    },
+    {
+     "id": "p13-m2",
+     "modelKey": "m2",
+     "text": "Rain drummed against the dented metal of the robot's shoulders as it stood motionless beneath the flickering bus stop sign, a single yellow umbrella clutched in one rusted hand and held over an empty bench. When the headlights finally bent around the corner, it tilted its head toward the sound, as if it had been waiting years for someone who still might step off."
+    },
+    {
+     "id": "p13-m3",
+     "modelKey": "m3",
+     "text": "Rain drummed a hollow rhythm against the robot’s weathered chassis as it sat motionless beneath the cracked awning of the bus stop. Its optical sensors flared a faint amber through the mist, patiently recalculating the arrival time of an engine it could not yet hear."
+    },
+    {
+     "id": "p13-m4",
+     "modelKey": "m4",
+     "text": "Rain beaded and streamed down the robot's weathered chassis as it stood motionless beneath the bus shelter's cracked plexiglass, water pooling in the seams of its joints. Every few minutes its sensors flicked toward the empty street, running the same patient calculation they had run for three years now: the route was discontinued, but the bus would come."
+    }
+   ]
+  },
+  {
+   "id": "p16",
+   "category": "creative",
+   "difficulty": "medium",
+   "text": "A two-line poem about coffee.",
+   "answers": [
+    {
+     "id": "p16-m1",
+     "modelKey": "m1",
+     "text": "Coffee brews in morning’s hush, a dark, warm rhyme,\nLifting tired hearts to brighten up the time."
+    },
+    {
+     "id": "p16-m2",
+     "modelKey": "m2",
+     "text": "Steam curls upward from the morning's cup,\nA bitter warmth that wakes the world up."
+    },
+    {
+     "id": "p16-m3",
+     "modelKey": "m3",
+     "text": "Dark liquid warmth within a ceramic cup,\nThe quiet magic that wakes the morning up."
+    },
+    {
+     "id": "p16-m4",
+     "modelKey": "m4",
+     "text": "Steam rises softly from the cup I hold,\nOne warm black sip against the morning cold."
+    }
+   ]
+  },
+  {
+   "id": "p06",
+   "category": "advice",
+   "difficulty": "medium",
+   "text": "Someone keeps missing gym sessions. Give two realistic tips. Under 50 words.",
+   "answers": [
+    {
+     "id": "p06-m1",
+     "modelKey": "m1",
+     "text": "1) Book sessions like appointments and pick a fixed time; set a reminder 30 minutes before.\n2) Use a “minimum” plan: commit to 15 minutes. Once there, continue if you want; if not, leave without guilt."
+    },
+    {
+     "id": "p06-m2",
+     "modelKey": "m2",
+     "text": "1. **Schedule it like an appointment.** Block the same times each week in your calendar and treat them as non-negotiable. Pack your gym bag the night before.\n\n2. **Lower the bar.** Commit to just 20 minutes. Starting small removes the \"all or nothing\" excuse, and you'll often stay longer once you're there."
+    },
+    {
+     "id": "p06-m3",
+     "modelKey": "m3",
+     "text": "1. **Lower the bar:** Commit to just 10 minutes. Tell yourself you can leave right after; simply showing up breaks the friction.\n2. **Treat it like an appointment:** Schedule it on your calendar as non-negotiable and pack your gym bag the night before."
+    },
+    {
+     "id": "p06-m4",
+     "modelKey": "m4",
+     "text": "1. Go straight from work or school—don't stop at home first. Getting comfortable on the couch kills momentum.\n\n2. Commit to just 10 minutes. Showing up is the hard part; once you're there, you'll usually finish the workout anyway."
+    }
+   ]
+  },
+  {
+   "id": "p10",
+   "category": "tradeoffs",
+   "difficulty": "medium",
+   "text": "Should a small startup buy or build its analytics tool? Under 50 words.",
+   "answers": [
+    {
+     "id": "p10-m1",
+     "modelKey": "m1",
+     "text": "Buy if you need speed, reliability, and low maintenance, and your analytics needs are common. Build only if you have unique data/workflows, strong engineering capacity, and clear ROI. Many startups start with a proven tool, then customize later."
+    },
+    {
+     "id": "p10-m2",
+     "modelKey": "m2",
+     "text": "Buy, in most cases. Off-the-shelf tools are faster, cheaper upfront, and let your small team focus on the core product. Build only if analytics is your differentiator, your needs are highly unique, or data privacy rules prohibit third-party tools. Revisit the decision as you scale."
+    },
+    {
+     "id": "p10-m3",
+     "modelKey": "m3",
+     "text": "A small startup should almost always **buy**. Building in-house drains scarce engineering time and capital away from your core product. Existing off-the-shelf tools are cheap, fast to set up, and feature-rich. Only build your own if analytics *is* your startup's primary value proposition."
+    },
+    {
+     "id": "p10-m4",
+     "modelKey": "m4",
+     "text": "Buy. For most startups, building analytics wastes precious engineering time on non-core work. Start with tools like Amplitude, PostHog, or Google Analytics—many have free tiers. Only build if analytics is your product or you have unique needs existing tools can't meet. Focus your resources on customers, not infrastructure."
+    }
+   ]
+  },
+  {
+   "id": "p21",
+   "category": "rewrite",
+   "difficulty": "medium",
+   "text": "Rewrite this in a friendlier tone: 'Your payment failed. Try again later.'",
+   "answers": [
+    {
+     "id": "p21-m1",
+     "modelKey": "m1",
+     "text": "Oops—your payment didn’t go through. Please try again later."
+    },
+    {
+     "id": "p21-m2",
+     "modelKey": "m2",
+     "text": "Here's a friendlier version:\n\n\"Oops, it looks like your payment didn't go through. No worries, please give it another try in a little while!\"\n\nA few other options depending on your style:\n\n- **Warm and reassuring:** \"We couldn't process your payment this time, but don't worry! Please try again shortly, and we'll be happy to help if you need anything.\"\n- **Short and casual:** \"Hmm, that payment didn't work. Mind trying again in a bit?\"\n- **Helpful:** \"Your payment didn't go through. Double-check your details and try again soon. We're here if you need a hand!\""
+    },
+    {
+     "id": "p21-m3",
+     "modelKey": "m3",
+     "text": "\"Oops! It looks like there was a small hiccup with your payment. Please give it another try in a few moments, or feel free to reach out if you need any help!\""
+    },
+    {
+     "id": "p21-m4",
+     "modelKey": "m4",
+     "text": "Here's a friendlier version:\n\n**\"Oops! We couldn't process your payment this time. Please try again in a little while — thanks for your patience!\"**\n\nA couple of alternatives depending on the vibe you're going for:\n\n- **Warm & apologetic:** \"We're sorry — your payment didn't go through just now. Please give it another try in a few minutes. We appreciate your understanding!\"\n- **Casual & light:** \"Hmm, something went wrong with your payment. No worries — just try again a bit later!\"\n\nLet me know if you'd like it more formal or more playful!"
+    }
+   ]
+  },
+  {
+   "id": "p03",
+   "category": "explanation",
+   "difficulty": "medium",
+   "text": "What is prompt caching? Explain in under 55 words.",
+   "answers": [
+    {
+     "id": "p03-m1",
+     "modelKey": "m1",
+     "text": "Prompt caching is an optimization where a system stores previously processed prompt parts so repeated requests can reuse cached results. This reduces latency and cost by avoiding re-tokenization or reprocessing of unchanged prompt segments, while still generating new outputs for the latest user inputs."
+    },
+    {
+     "id": "p03-m2",
+     "modelKey": "m2",
+     "text": "Prompt caching stores the processed form of repeated prompt portions, like system instructions or long documents, so the model doesn't recompute them on each request. This reduces latency and cost for similar queries, since only the new, changing part of the prompt needs fresh processing."
+    },
+    {
+     "id": "p03-m3",
+     "modelKey": "m3",
+     "text": "Prompt caching stores frequently used input text—such as long documents, system instructions, or chat history—in memory. When identical text appears in future queries, the system reuses the cached computation instead of reprocessing it from scratch, significantly reducing response latency and computational costs."
+    },
+    {
+     "id": "p03-m4",
+     "modelKey": "m4",
+     "text": "Prompt caching is a technique where an AI system stores previously processed input (like long system prompts or documents) so repeated requests reuse it instead of recomputing. This speeds up responses and lowers costs, since only new or changed parts of the prompt need full processing."
+    }
+   ]
+  },
+  {
+   "id": "p08",
+   "category": "advice",
+   "difficulty": "medium",
+   "text": "Best way to start learning to type faster? Three tips, under 55 words.",
+   "answers": [
+    {
+     "id": "p08-m1",
+     "modelKey": "m1",
+     "text": "1) Use the right technique: keep fingers on the home row, wrists relaxed, and press keys with finger movement—not arms.\n2) Practice daily with short drills (10–15 minutes) focusing on accuracy first.\n3) Use targeted practice for weak keys and track speed progress with a timer."
+    },
+    {
+     "id": "p08-m2",
+     "modelKey": "m2",
+     "text": "1. **Learn touch typing.** Keep your fingers on the home row and stop looking at the keyboard.\n\n2. **Prioritize accuracy first.** Speed follows naturally once errors drop; correcting mistakes slows you down more.\n\n3. **Practice daily.** Use free tools like Monkeytype or Keybr for 15 to 20 minutes, focusing on weak keys."
+    },
+    {
+     "id": "p08-m3",
+     "modelKey": "m3",
+     "text": "1. **Use the home row:** Anchor index fingers on F and J, letting each finger control specific keys.\n2. **Prioritize accuracy over speed:** Typing correctly builds muscle memory; speed follows naturally.\n3. **Never look down:** Keep your eyes on the screen to force your brain to memorize key positions faster."
+    },
+    {
+     "id": "p08-m4",
+     "modelKey": "m4",
+     "text": "1. **Learn touch typing** — rest fingers on home row (ASDF/JKL;) and type without looking, even if slower at first.\n\n2. **Prioritize accuracy over speed** — speed follows naturally once errors drop.\n\n3. **Practice daily** — 10–15 minutes on sites like Monkeytype or TypingClub beats occasional long sessions."
+    }
+   ]
+  },
+  {
+   "id": "p22",
+   "category": "rewrite",
+   "difficulty": "medium",
+   "text": "Make this clearer in one sentence: 'We have identified that the issue you reported is not reproducible on our environment at this time.'",
+   "answers": [
+    {
+     "id": "p22-m1",
+     "modelKey": "m1",
+     "text": "At this time, we can’t reproduce the issue you reported in our environment."
+    },
+    {
+     "id": "p22-m2",
+     "modelKey": "m2",
+     "text": "\"We couldn't reproduce the issue you reported in our environment.\""
+    },
+    {
+     "id": "p22-m3",
+     "modelKey": "m3",
+     "text": "We are currently unable to reproduce the issue on our end."
+    },
+    {
+     "id": "p22-m4",
+     "modelKey": "m4",
+     "text": "\"We were unable to reproduce the issue you reported.\"\n\nThis works because it uses active voice, drops the wordy filler (\"We have identified that\"), and removes vague phrases like \"at this time.\" If you want to preserve the possibility that it might occur later, you could say: \"We weren't able to reproduce the issue when we tested it.\""
+    }
+   ]
+  },
+  {
+   "id": "p07",
+   "category": "advice",
+   "difficulty": "medium",
+   "text": "How do you say no to a meeting invite politely? Under 50 words.",
+   "answers": [
+    {
+     "id": "p07-m1",
+     "modelKey": "m1",
+     "text": "Thanks for the invite. Unfortunately, I can’t attend due to a prior commitment. I appreciate you thinking of me—please keep me in mind for future meetings, and feel free to share any notes or materials."
+    },
+    {
+     "id": "p07-m2",
+     "modelKey": "m2",
+     "text": "Thanks for the invite! Unfortunately, I can't attend due to a scheduling conflict. Could you share the notes afterward, or send me the key action items? I'm happy to provide input by email beforehand if helpful. Let me know if there's another way I can contribute."
+    },
+    {
+     "id": "p07-m3",
+     "modelKey": "m3",
+     "text": "\"Thank you for the invite. Unfortunately, I am unable to attend due to a prior commitment. Please feel free to share any notes or key takeaways afterward, and let me know if there is anything specific you need from me.\""
+    },
+    {
+     "id": "p07-m4",
+     "modelKey": "m4",
+     "text": "Thank them, briefly explain, and offer an alternative:\n\n*\"Thanks for the invite! Unfortunately, I can't make it due to a scheduling conflict. Could we reschedule, or is there a summary I could review instead?\"*\n\nKeep it short, don't over-apologize, and show willingness to stay engaged another way."
+    }
+   ]
+  },
+  {
+   "id": "p12",
+   "category": "tradeoffs",
+   "difficulty": "hard",
+   "text": "Dark mode or light mode for long coding sessions? One short paragraph, under 50 words.",
+   "answers": [
+    {
+     "id": "p12-m1",
+     "modelKey": "m1",
+     "text": "For long coding sessions, either can work, but most people prefer dark mode if they’re in low-light environments because it reduces perceived glare. In bright rooms, light mode can be easier on the eyes. Pick what feels most comfortable and consistent, and adjust brightness/contrast."
+    },
+    {
+     "id": "p12-m2",
+     "modelKey": "m2",
+     "text": "Dark mode is generally easier on the eyes during long sessions, especially in dim environments, since it reduces glare and brightness. However, light mode can improve readability in bright rooms and for some people with astigmatism. Choose based on your lighting, and take regular breaks regardless."
+    },
+    {
+     "id": "p12-m3",
+     "modelKey": "m3",
+     "text": "Dark mode is generally better for long coding sessions in dim environments, as it reduces glare and eye strain. However, light mode provides better text readability in bright spaces. The best choice is to match your editor’s theme to the ambient lighting of your room."
+    },
+    {
+     "id": "p12-m4",
+     "modelKey": "m4",
+     "text": "Dark mode works well for most people during long sessions—it reduces glare in dim rooms and feels easier on the eyes. That said, light mode often wins in bright environments, and contrast settings matter more than the theme itself. Try both; pick whichever lets you code longer without fatigue."
+    }
+   ]
+  },
+  {
+   "id": "p11",
+   "category": "tradeoffs",
+   "difficulty": "hard",
+   "text": "Is a monorepo or many repos better for a small team? Answer in under 50 words.",
+   "answers": [
+    {
+     "id": "p11-m1",
+     "modelKey": "m1",
+     "text": "For a small team, a monorepo is usually better if projects share dependencies, need consistent tooling, and you want simpler cross-project refactors. Many repos can work if products are truly independent with minimal shared code, but coordination and duplicated setup increase overhead."
+    },
+    {
+     "id": "p11-m2",
+     "modelKey": "m2",
+     "text": "A monorepo is usually better for a small team. It simplifies code sharing, atomic changes across projects, dependency management, and tooling setup, with less overhead. Consider multiple repos only if you need strict access control, independent release cycles, or have truly unrelated projects."
+    },
+    {
+     "id": "p11-m3",
+     "modelKey": "m3",
+     "text": "A monorepo is generally better for a small team. It simplifies code sharing, dependency management, and atomic commits across projects. Multiple repositories introduce unnecessary operational overhead in versioning, tooling, and cross-repo coordination that can easily slow a small team down."
+    },
+    {
+     "id": "p11-m4",
+     "modelKey": "m4",
+     "text": "For small teams, a monorepo is usually better: atomic cross-project changes, easier code sharing, one CI pipeline, and less coordination overhead. Switch to separate repos only if projects are truly independent, need different access controls, or use incompatible toolchains."
+    }
+   ]
+  },
+  {
+   "id": "p04",
+   "category": "explanation",
+   "difficulty": "hard",
+   "text": "Explain compound interest in two sentences.",
+   "answers": [
+    {
+     "id": "p04-m1",
+     "modelKey": "m1",
+     "text": "Compound interest is interest calculated not only on your original principal, but also on any accumulated interest from earlier periods. As time passes, your balance grows faster because each period adds interest to a larger amount."
+    },
+    {
+     "id": "p04-m2",
+     "modelKey": "m2",
+     "text": "Compound interest is interest calculated on both your original principal and the interest that has already accumulated, so your balance grows at an increasing rate over time. The more frequently it compounds and the longer you leave it untouched, the more dramatically your money grows compared to simple interest, which only earns on the original amount."
+    },
+    {
+     "id": "p04-m3",
+     "modelKey": "m3",
+     "text": "Compound interest is the interest calculated on both the initial principal and the accumulated interest from previous periods. This creates a snowball effect where you earn \"interest on interest,\" allowing your balance to grow at an accelerating rate over time."
+    },
+    {
+     "id": "p04-m4",
+     "modelKey": "m4",
+     "text": "Compound interest is interest calculated on both the original amount of money (the principal) and any interest already earned, so your balance grows by earning \"interest on interest.\" Over time, this causes your money to grow at an increasingly faster rate, which is why starting early makes a big difference in savings and investments."
+    }
+   ]
+  },
+  {
+   "id": "p01",
+   "category": "explanation",
+   "difficulty": "hard",
+   "text": "Explain what an API is to a curious 12-year-old. Under 55 words.",
+   "answers": [
+    {
+     "id": "p01-m1",
+     "modelKey": "m1",
+     "text": "An API is like a waiter in a restaurant. You tell the waiter what you want (send a request), and the waiter brings it back from the kitchen (a computer service). You don’t see how it’s made—you just get the results reliably through simple rules."
+    },
+    {
+     "id": "p01-m2",
+     "modelKey": "m2",
+     "text": "An API is like a restaurant menu and waiter. You (an app) look at the menu to see what you can order, tell the waiter your request, and they bring back what the kitchen (another system) makes. You don't need to know how the kitchen works, just how to ask properly."
+    },
+    {
+     "id": "p01-m3",
+     "modelKey": "m3",
+     "text": "An API is like a waiter in a restaurant. You tell the waiter what you want, and they go to the kitchen to fetch your food.\n\nIn tech, an API is that messenger, letting two different apps talk to each other and share data—like a weather app getting temperatures from a radar station."
+    },
+    {
+     "id": "p01-m4",
+     "modelKey": "m4",
+     "text": "Imagine a restaurant: you tell the waiter what you want, the waiter tells the kitchen, then brings back your food. You never see how the kitchen works. An API is like that waiter — it lets apps ask other computers for things, like a weather app getting today's forecast."
+    }
+   ]
+  },
+  {
+   "id": "p05",
+   "category": "advice",
+   "difficulty": "hard",
+   "text": "Give three practical tips for someone overwhelmed by notifications. Under 55 words.",
+   "answers": [
+    {
+     "id": "p05-m1",
+     "modelKey": "m1",
+     "text": "1) Turn off nonessential notifications; keep only calls, messages from key people, and urgent alerts.\n2) Check notifications twice daily (or on set times) instead of constantly.\n3) Batch-do alerts: silence during focused work, use Do Not Disturb/scheduled modes, and unsubscribe from noisy apps."
+    },
+    {
+     "id": "p05-m2",
+     "modelKey": "m2",
+     "text": "1. **Audit your apps:** Turn off notifications for everything except essentials like calls, messages from close contacts, and calendar alerts.\n\n2. **Schedule check-ins:** Batch emails and social media into set times, such as morning, lunch, and evening.\n\n3. **Use Do Not Disturb:** Enable focus modes during work, meals, and sleep so interruptions wait."
+    },
+    {
+     "id": "p05-m3",
+     "modelKey": "m3",
+     "text": "1. **Audit and purge:** Turn off alerts for all non-essential apps, especially social media, news, and shopping.\n2. **Schedule Focus Modes:** Use \"Do Not Disturb\" during work hours and sleep to silence interruptions automatically.\n3. **Batch notifications:** Group alerts into a scheduled daily summary or designate set times to check messages manually."
+    },
+    {
+     "id": "p05-m4",
+     "modelKey": "m4",
+     "text": "1. **Batch-check apps**: Turn off notifications for non-urgent apps and check them at set times instead.\n2. **Prioritize**: Allow notifications only from people who truly matter—family, close colleagues.\n3. **Use Do Not Disturb**: Schedule automatic quiet hours, especially during work blocks and before sleep.\n\nSmall changes compound—start with one app today."
+    }
+   ]
+  },
+  {
+   "id": "p02",
+   "category": "explanation",
+   "difficulty": "hard",
+   "text": "Explain why the sky is blue to a 10-year-old. Under 60 words.",
+   "answers": [
+    {
+     "id": "p02-m1",
+     "modelKey": "m1",
+     "text": "The sky looks blue because tiny air particles scatter sunlight. Sunlight has many colors, but blue light gets scattered the most in every direction. So when you look up, you see lots of scattered blue light coming from all parts of the sky."
+    },
+    {
+     "id": "p02-m2",
+     "modelKey": "m2",
+     "text": "Sunlight looks white, but it's really a mix of all rainbow colors. When sunlight hits the air, tiny gas particles bounce light around. Blue light has short, wiggly waves, so it gets scattered much more than red or yellow. That scattered blue light reaches your eyes from every direction, making the whole sky look blue!"
+    },
+    {
+     "id": "p02-m3",
+     "modelKey": "m3",
+     "text": "Sunlight looks white, but it’s actually made of every rainbow color. When sunlight reaches Earth, it hits the gases in our air. Blue light travels in short, choppy waves, so it bounces off the air particles in all directions more than other colors. When you look up, you see that scattered blue light!"
+    },
+    {
+     "id": "p02-m4",
+     "modelKey": "m4",
+     "text": "Sunlight looks white, but it's actually made of all colors mixed together! When sunlight enters the air, tiny invisible bits of air bounce the light around. Blue light bounces the most—it scatters everywhere across the sky. So when you look up, you see all that bounced blue light. That's why the sky looks blue!"
+    }
+   ]
+  },
+  {
+   "id": "p23",
+   "category": "rewrite",
+   "difficulty": "hard",
+   "text": "Summarize in one sentence: A home router manages traffic between your devices and the internet, assigning local addresses and forwarding requests, and it should be rebooted when the connection fails.",
+   "answers": [
+    {
+     "id": "p23-m1",
+     "modelKey": "m1",
+     "text": "A home router connects your devices to the internet by assigning local addresses and forwarding requests, and you should reboot it if the connection fails."
+    },
+    {
+     "id": "p23-m2",
+     "modelKey": "m2",
+     "text": "A home router directs traffic between your devices and the internet by assigning local addresses and forwarding requests, and rebooting it can often fix a failed connection."
+    },
+    {
+     "id": "p23-m3",
+     "modelKey": "m3",
+     "text": "A home router directs traffic between your local devices and the internet and should be rebooted if connection issues occur."
+    },
+    {
+     "id": "p23-m4",
+     "modelKey": "m4",
+     "text": "A home router directs traffic between your devices and the internet, and rebooting it usually fixes connection failures."
+    }
+   ]
+  },
+  {
+   "id": "p24",
+   "category": "rewrite",
+   "difficulty": "hard",
+   "text": "Turn this into a checklist of three items: Before deploying, run tests, update the changelog, and notify the team.",
+   "answers": [
+    {
+     "id": "p24-m1",
+     "modelKey": "m1",
+     "text": "- [ ] Run tests before deploying\n- [ ] Update the changelog\n- [ ] Notify the team"
+    },
+    {
+     "id": "p24-m2",
+     "modelKey": "m2",
+     "text": "Before deploying:\n\n- [ ] Run tests\n- [ ] Update the changelog\n- [ ] Notify the team"
+    },
+    {
+     "id": "p24-m3",
+     "modelKey": "m3",
+     "text": "**Pre-Deployment Checklist:**\n\n* [ ] Run tests\n* [ ] Update the changelog\n* [ ] Notify the team"
+    },
+    {
+     "id": "p24-m4",
+     "modelKey": "m4",
+     "text": "# Pre-Deployment Checklist\n\n- [ ] Run tests\n- [ ] Update the changelog\n- [ ] Notify the team"
+    }
+   ]
+  }
+ ]
+}

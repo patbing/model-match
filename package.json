@@ -1,0 +1,13 @@
+{
+  "name": "model-match",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Guess which AI model wrote each answer — a static game with a pre-generated bank of Pollinations API answers.",
+  "scripts": {
+    "validate": "node scripts/validate-bank.mjs",
+    "test": "node --test",
+    "check": "npm run validate && npm test",
+    "serve": "python3 -m http.server 8080"
+  }
+}

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Model Match — guess which AI wrote it</title>
+<meta name="description" content="A five-round guessing game: read one answer and pick which AI model wrote it. Answers are pre-generated with the Pollinations API.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎭</text></svg>">
+<link rel="stylesheet" href="src/styles.css">
+<script>
+  /* Honest source metadata: how this app relates to Pollinations. */
+  window.MODEL_MATCH_SOURCE = {
+    provider: 'pollinations',
+    mode: 'pre-generated',
+    homepage: 'https://pollinations.ai',
+    generator: 'tools/generate-bank.py'
+  };
+</script>
+</head>
+<body>
+<header class="top">
+  <div class="brand">🎭 Model Match</div>
+  <div class="hud" id="hud" hidden>
+    <div class="dots" id="dots" aria-label="progress"></div>
+    <div class="score" id="score">0</div>
+  </div>
+</header>
+<main id="app" aria-live="polite"></main>
+<footer class="foot">
+  <span>Answers pre-generated with <a href="https://pollinations.ai">pollinations.ai</a> — no API calls while you play.</span>
+  <a class="badge" href="https://pollinations.ai/?ref=badge" aria-label="Made with pollinations.ai">
+    <img src="https://raw.githubusercontent.com/pollinations/pollinations/main/packages/ui/src/brand/badge-made-with.svg" alt="Made with pollinations.ai" height="28">
+  </a>
+</footer>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>

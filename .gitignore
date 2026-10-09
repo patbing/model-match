@@ -1,0 +1,25 @@
+__pycache__/
+*.pyc
+.DS_Store
+_site/
+node_modules/
+
+# local-only work files (not part of the public repo)
+DECISIONS.md
+gen_bank.py
+gen_bank.log
+pilot.py
+pilot2.py
+pilot_v1.json
+pilot_v2.json
+bank_raw_v1.json
+make_mock.py
+tools/shoot.mjs
+tools/check_restore.mjs
+submission_fields.json
+dom_dump.txt
+chrome_err.txt
+assets/screenshot_smoke.png
+assets/shot_start.png
+assets/shot_round.png
+assets/shot_reveal.png

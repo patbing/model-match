@@ -1,0 +1,58 @@
+{
+ "bankVersion": "2026-10-09-v1",
+ "generatedAt": "2026-10-09 18:48:16",
+ "api": "gen.pollinations.ai/v1/chat/completions",
+ "maxTokens": 1500,
+ "systemPrompt": "You are an AI assistant. Answer directly. Never mention any AI model or company names.",
+ "models": [
+  {
+   "key": "m1",
+   "apiModelId": "openai/gpt-5.4-nano",
+   "displayName": "GPT-5.4 Nano"
+  },
+  {
+   "key": "m2",
+   "apiModelId": "anthropic/claude-sonnet-5.5",
+   "displayName": "Claude Sonnet 5.5"
+  },
+  {
+   "key": "m3",
+   "apiModelId": "google/gemini-3.8-flash",
+   "displayName": "Gemini 3.8 Flash"
+  },
+  {
+   "key": "m4",
+   "apiModelId": "z-ai/glm-5.3-flash",
+   "displayName": "GLM 5.3 Flash"
+  }
+ ],
+ "promptsTotal": 24,
+ "promptsComplete": 24,
+ "tokens": {
+  "input": 4638,
+  "output": 24797,
+  "perModel": {
+   "m1": {
+    "in": 1092,
+    "out": 1123,
+    "calls": 24
+   },
+   "m2": {
+    "in": 1504,
+    "out": 2292,
+    "calls": 24
+   },
+   "m3": {
+    "in": 873,
+    "out": 13425,
+    "calls": 24
+   },
+   "m4": {
+    "in": 1169,
+    "out": 7957,
+    "calls": 24
+   }
+  }
+ },
+ "note": "API keys are never stored here. Cost is recorded in the work log separately."
+}
