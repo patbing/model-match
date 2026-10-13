@@ -463,6 +463,15 @@ test('a full fresh game costs exactly 20 requests when nothing fails', async () 
   assert.deepEqual(src.getUsage(), { requests: 20, succeeded: 20, failed: 0 });
 });
 
+test('fresh setup ids: rendered toggle id matches lookup (regression)', () => {
+  // 2026-10-14 실버그: 렌더 id(btn-key-visibility)와 조회 id(fresh-key-visibility)
+  // 불일치로 Start가 TypeError로 죽었음. 쌍 존재를 고정해 재발 방지.
+  const viewSrc = readFileSync(join(root, 'src', 'view.js'), 'utf8');
+  assert.ok(viewSrc.includes('id="btn-key-visibility"'));
+  assert.ok(viewSrc.includes("getElementById('btn-key-visibility')"));
+  assert.ok(!viewSrc.includes('fresh-key-visibility'));
+});
+
 test('fetchOneModel never retries and never leaks the key', async () => {
   const calls = [];
   const bad = async () => { calls.push(1); throw new TypeError('down'); };
