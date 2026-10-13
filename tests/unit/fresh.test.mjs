@@ -408,15 +408,29 @@ test('start gate needs a key plus explicit consent', () => {
   assert.equal(canStartFresh({ key: null, consent: true }), false);
 });
 
-test('extractFreshText rejects empty and mismatched-model payloads', () => {
+test('extractFreshText rejects empty payloads; echo is advisory-only (live contract)', () => {
   assert.deepEqual(extractFreshText({ model: 'a', choices: [{ message: { content: 'hi' } }] }, 'a'),
     { ok: true, text: 'hi' });
   assert.deepEqual(extractFreshText({ choices: [{ message: { content: 'hi' } }] }, 'a'),
     { ok: true, text: 'hi' });
-  assert.equal(extractFreshText({ model: 'b', choices: [{ message: { content: 'hi' } }] }, 'a').ok, false);
   assert.equal(extractFreshText({ model: 'a', choices: [{ message: { content: '  ' } }] }, 'a').ok, false);
   assert.equal(extractFreshText({ model: 'a', choices: [] }, 'a').ok, false);
   assert.equal(extractFreshText(null, 'a').ok, false);
+});
+
+test('extractFreshText accepts all live versioned echoes (2026-10-14 실측)', () => {
+  // Request alias -> live echo. None equal the alias; all must be accepted.
+  const pairs = [
+    ['openai/gpt-5.4-nano', 'gpt-5.4-nano-2026-03-17'],
+    ['anthropic/claude-sonnet-5.5', 'global.anthropic.claude-sonnet-5-5'],
+    ['google/gemini-3.8-flash', 'gemini-3.8-flash'],
+    ['z-ai/glm-5.3-flash', 'accounts/fireworks/models/glm-5p3-flash'],
+  ];
+  for (const [req, echo] of pairs) {
+    const r = extractFreshText(
+      { model: echo, choices: [{ message: { content: 'hi' } }] }, req);
+    assert.deepEqual(r, { ok: true, text: 'hi' }, `${req} <- ${echo}`);
+  }
 });
 
 test('errorKindForStatus maps auth/rate/other', () => {

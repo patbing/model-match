@@ -119,9 +119,30 @@ export function buildFreshRequest({ modelId, promptText, key, signal, systemProm
 }
 
 // Normalize one model response into game answer text.
-// Empty content, unparseable shape, or a server-echoed model id that does
-// not match the requested model all count as a per-model failure.
-export function extractFreshText(payload, expectedModelId) {
+// Empty content or unparseable shape counts as a per-model failure.
+// NOTE (live-verified 2026-10-14): the server echoes a provider-rewritten
+// id that never equals the requested alias, and the rewrite is unpredictable
+// ("openai/gpt-5.4-nano" -> "gpt-5.4-nano-2026-03-17",
+//  "anthropic/claude-sonnet-5.5" -> "global.anthropic.claude-sonnet-5-5",
+//  "z-ai/glm-5.3-flash" -> "accounts/fireworks/models/glm-5p3-flash").
+// No client-side heuristic can distinguish "versioned same model" from
+// "fallback different model", so the echo is NOT a failure signal — any
+// non-empty text is accepted. Kept as an advisory helper only.
+export function isModelEchoCompatible(echoed, expectedModelId) {
+  if (typeof echoed !== 'string' || echoed.length === 0) return true;
+  if (typeof expectedModelId !== 'string' || expectedModelId.length === 0) return true;
+  if (echoed === expectedModelId) return true;
+  const base = expectedModelId.includes('/')
+    ? expectedModelId.slice(expectedModelId.lastIndexOf('/') + 1)
+    : expectedModelId;
+  const e = echoed.toLowerCase();
+  const b = base.toLowerCase();
+  if (e === b) return true;
+  if (e.startsWith(b + '-') || e.startsWith(b + ':') || e.startsWith(b + '_') || e.startsWith(b + '/')) return true;
+  return false;
+}
+export function extractFreshText(payload, _expectedModelId) {
+  void _expectedModelId; // advisory only (see note above): echo carries no routing signal
   const text =
     payload &&
     payload.choices &&
@@ -130,10 +151,6 @@ export function extractFreshText(payload, expectedModelId) {
     payload.choices[0].message.content;
   if (typeof text !== 'string' || text.trim().length === 0) {
     return { ok: false, reason: 'empty' };
-  }
-  const echoed = payload.model;
-  if (typeof echoed === 'string' && echoed.length > 0 && echoed !== expectedModelId) {
-    return { ok: false, reason: 'model-mismatch' };
   }
   return { ok: true, text: text.trim() };
 }

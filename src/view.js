@@ -197,7 +197,7 @@ export function renderFreshSetup(app, { notice, storeMode, setupError, costKo, c
   }
   keyInput.addEventListener('input', () => { setupError = ''; errEl.textContent = ''; refresh(); });
   consent.addEventListener('change', refresh);
-  document.getElementById('fresh-key-visibility').addEventListener('click', (e) => {
+  document.getElementById('btn-key-visibility').addEventListener('click', (e) => {
     const show = keyInput.type === 'password';
     keyInput.type = show ? 'text' : 'password';
     e.currentTarget.textContent = show ? 'Hide key' : 'Show key';
