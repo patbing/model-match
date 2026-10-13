@@ -4,7 +4,12 @@ import { createGame, bonusFor } from './game.js';
 import { createStorage } from './storage.js';
 import { buildShareText, shareText } from './share.js';
 import {
+  createFreshSource, createKeyStore, canStartFresh,
+  FRESH_COST_NOTICE_EN, FRESH_COST_NOTICE_KO,
+} from './fresh.js';
+import {
   renderStart, renderRound, renderReveal, renderResult, renderError,
+  renderFreshSetup, renderFreshLoading, renderFreshError, appendFreshUsage,
   updateHud, hideHud, setShareStatus,
 } from './view.js';
 
@@ -25,13 +30,28 @@ let session = null;        // { mode, date, practiceSeed }
 let game = null;
 let selected = null;
 let savedPractice = null;  // resumable practice snapshot offered on the start screen
+let freshCtx = null;       // { source, keyStore, key, aborter } — live Fresh game only
 
 function randomSeed() {
   return Math.floor(Math.random() * 0x7fffffff);
 }
 
 function storeFor(mode) {
-  return mode === 'daily' ? storeDaily : storePractice;
+  if (mode === 'daily') return storeDaily;
+  if (mode === 'practice') return storePractice;
+  return null; // fresh: never persisted
+}
+
+// Abort any in-flight Fresh requests and drop every key reference.
+// Called on Exit, on mode switch, and on 401. Late arrivals are ignored
+// via the source generation counter + the aborter identity check.
+function cleanupFresh() {
+  if (!freshCtx) return;
+  try { if (freshCtx.aborter) freshCtx.aborter.abort(); } catch (_) { /* ignore */ }
+  try { if (freshCtx.source) freshCtx.source.abort(); } catch (_) { /* ignore */ }
+  try { if (freshCtx.keyStore) freshCtx.keyStore.clear(); } catch (_) { /* ignore */ }
+  freshCtx.key = null;
+  freshCtx = null;
 }
 
 async function boot() {
@@ -70,11 +90,15 @@ function loadFreshPractice() {
 }
 
 function showStart() {
+  cleanupFresh();
+  session = null;
+  game = null;
   hideHud(hudRefs);
   renderStart(app, {
     continueAvailable: Boolean(savedPractice),
     onDaily: () => startGame({ mode: 'daily', date: utcDateStr() }),
     onPractice: () => startGame({ mode: 'practice', practiceSeed: randomSeed() }),
+    onFresh: () => showFreshSetup(''),
     onContinue: () => {
       const snap = savedPractice;
       savedPractice = null;
@@ -84,6 +108,7 @@ function showStart() {
 }
 
 function startGame(nextSession) {
+  cleanupFresh();
   session = nextSession;
   if (nextSession.mode === 'practice') savedPractice = null;
   const rounds = buildRounds(bank, session);
@@ -94,6 +119,7 @@ function startGame(nextSession) {
 }
 
 function restoreFrom(saved) {
+  cleanupFresh();
   session = { mode: saved.mode, date: saved.date, practiceSeed: saved.practiceSeed };
   // Only restoring the practice game itself consumes the resumable snapshot.
   if (saved.mode === 'practice') savedPractice = null;
@@ -105,8 +131,10 @@ function restoreFrom(saved) {
 
 function persist() {
   if (!game || !session) return;
+  const store = storeFor(session.mode);
+  if (!store) return; // fresh: never persisted
   const s = game.state();
-  storeFor(session.mode).save({
+  store.save({
     bankVersion: bank.bankVersion,
     mode: session.mode,
     date: session.date,
@@ -115,6 +143,118 @@ function persist() {
     idx: s.idx,
     done: s.done,
     savedAt: Date.now(),
+  });
+}
+
+function freshModelName(key) {
+  const m = models && models.get ? models.get(key) : null;
+  return (m && m.displayName) || String(key);
+}
+
+function showFreshSetup(notice) {
+  cleanupFresh();
+  session = null;
+  game = null;
+  hideHud(hudRefs);
+  const keyStore = createKeyStore();
+  renderFreshSetup(app, {
+    notice,
+    setupError: notice,
+    storeMode: keyStore.storeMode(),
+    costKo: FRESH_COST_NOTICE_KO,
+    costEn: FRESH_COST_NOTICE_EN,
+    onStart: ({ key, consent }) => {
+      if (!canStartFresh({ key, consent })) {
+        showFreshSetup('Enter your API key and tick the cost consent checkbox to start.');
+        return;
+      }
+      keyStore.save(key);
+      startFresh(keyStore);
+    },
+    onCancel: showStart,
+    onDeleteKey: () => keyStore.clear(),
+  });
+}
+
+function startFresh(keyStore) {
+  const key = keyStore.load();
+  if (!key) {
+    showFreshSetup('The key could not be read back. Type it again to start.');
+    return;
+  }
+  let source;
+  try {
+    source = createFreshSource({ bank, seed: randomSeed(), fetchImpl: (...a) => fetch(...a) });
+  } catch (err) {
+    showFreshSetup('Fresh could not start with this bank. Daily and Practice still work.');
+    return;
+  }
+  session = { mode: 'fresh' };
+  game = createGame(source.getShells());
+  selected = null;
+  freshCtx = { source, keyStore, key, aborter: null };
+  fetchFreshRound(0);
+}
+
+function exitFresh() {
+  cleanupFresh();
+  showStart();
+}
+
+// Fetch round i on demand (4 live requests), then atomically commit before
+// the round becomes playable. Guessing stays locked on the loading screen
+// until then. Retries re-enter here and refetch only missing models —
+// successes are cached inside the source and never regenerated.
+async function fetchFreshRound(i) {
+  if (!freshCtx || !session || session.mode !== 'fresh') return;
+  const ctx = freshCtx;
+  const aborter = new AbortController();
+  ctx.aborter = aborter;
+  updateHud(hudRefs, game.state(), game.size);
+  renderFreshLoading(app, {
+    idx: i,
+    total: game.size,
+    usage: ctx.source.getUsage(),
+    onExit: exitFresh,
+  });
+  let res;
+  try {
+    res = await ctx.source.getRound({ roundIndex: i, key: ctx.key, signal: aborter.signal });
+  } catch (_) {
+    res = { ok: false, kind: 'retryable', failedKeys: [], succeededKeys: [] };
+  }
+  if (freshCtx !== ctx || ctx.aborter !== aborter) return; // stale: exited or superseded
+  if (!session || session.mode !== 'fresh') return;
+  if (res.ok) {
+    render();
+    return;
+  }
+  if (res.kind === 'auth') {
+    // 401/403: cancel everything, delete the key, never auto-retry.
+    cleanupFresh();
+    showFreshSetup('That key was rejected by the API (unauthorized). It has been deleted — check the key and try again. No score was recorded.');
+    return;
+  }
+  if (res.kind === 'aborted') return; // exit path already handled
+  if (res.kind === 'no-key') {
+    cleanupFresh();
+    showFreshSetup('The key is gone. Type it again to start Fresh.');
+    return;
+  }
+  const failedNames = (res.failedKeys || []).map(freshModelName);
+  const title = res.kind === 'rate' ? 'Rate limited — paused' : 'Generation failed — paused';
+  const message = res.kind === 'rate'
+    ? 'The API rate-limited this round. Nothing was scored. You can retry the missing answers or exit Fresh.'
+    : 'Some answers could not be generated (timeout, network, or server error). Nothing was scored. You can retry the missing answers or exit Fresh.';
+  updateHud(hudRefs, game.state(), game.size);
+  renderFreshError(app, {
+    title,
+    message,
+    failedNames,
+    usage: ctx.source.getUsage(),
+    retryAfter: res.retryAfter,
+    onRetry: () => fetchFreshRound(i),
+    onExit: exitFresh,
   });
 }
 
@@ -142,11 +282,12 @@ function resultMessage(score) {
 
 function render() {
   const state = game.state();
+  const isFresh = session && session.mode === 'fresh';
   updateHud(hudRefs, state, game.size);
 
   if (state.phase === 'result') {
-    const modeLabel = session.mode === 'daily' ? "Today's challenge" : 'Practice';
-    const dateLabel = session.mode === 'daily' ? session.date : 'random rounds';
+    const modeLabel = session.mode === 'daily' ? "Today's challenge" : (isFresh ? 'Fresh — live' : 'Practice');
+    const dateLabel = session.mode === 'daily' ? session.date : (isFresh ? 'fresh' : 'random rounds');
     renderResult(app, {
       state,
       modeLabel,
@@ -155,7 +296,7 @@ function render() {
       message: resultMessage(state.score),
       shareBtn: () => {
         const text = buildShareText({
-          dateLabel: session.mode === 'daily' ? session.date : 'practice',
+          dateLabel: session.mode === 'daily' ? session.date : (isFresh ? 'fresh' : 'practice'),
           bankLabel: bankLabel(bank),
           pattern: state.pattern.join(''),
           score: state.score,
@@ -175,6 +316,7 @@ function render() {
       onPractice: () => startGame({ mode: 'practice', practiceSeed: randomSeed() }),
       onHome: showStart,
     });
+    if (isFresh && freshCtx) appendFreshUsage(app, freshCtx.source.getUsage());
     return;
   }
 
@@ -188,9 +330,28 @@ function render() {
       isLast: state.idx + 1 >= game.size,
       idx: state.idx,
       total: game.size,
-      onNext: () => { game.next(); persist(); render(); },
+      onNext: () => {
+        game.next();
+        persist();
+        if (isFresh) {
+          // Next round is not playable until its 4 live answers commit.
+          if (freshCtx && freshCtx.source.isCommitted(game.state().idx)) render();
+          else fetchFreshRound(game.state().idx);
+        } else {
+          render();
+        }
+      },
     });
+    if (isFresh && freshCtx) appendFreshUsage(app, freshCtx.source.getUsage());
     return;
+  }
+
+  if (isFresh) {
+    // A round is playable only after atomic commit of all 4 answers.
+    if (!freshCtx || !freshCtx.source.isCommitted(state.idx)) {
+      fetchFreshRound(state.idx);
+      return;
+    }
   }
 
   renderRound(app, {
@@ -208,6 +369,7 @@ function render() {
       render();
     },
   });
+  if (isFresh && freshCtx) appendFreshUsage(app, freshCtx.source.getUsage());
 }
 
 boot();
