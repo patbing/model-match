@@ -4,9 +4,15 @@ import { createGame, bonusFor } from './game.js';
 import { createStorage } from './storage.js';
 import { buildShareText, shareText } from './share.js';
 import {
-  createFreshSource, createKeyStore, canStartFresh,
-  FRESH_COST_NOTICE_EN, FRESH_COST_NOTICE_KO,
+  createFreshSource, createKeyStore, canStartFresh, buildCostNotice,
+  FRESH_EARNINGS_NOTICE_EN, FRESH_EARNINGS_NOTICE_KO,
 } from './fresh.js';
+import {
+  BYOP_DEVELOPER_EARNINGS_ENABLED,
+  beginTransaction, parseCallback, claimCallbackTransaction,
+  exchangeCode, clearTransaction, defaultByopStore,
+  tokenUsable,
+} from './byop.js';
 import {
   renderStart, renderRound, renderReveal, renderResult, renderError,
   renderFreshSetup, renderFreshLoading, renderFreshError, appendFreshUsage,
@@ -30,7 +36,8 @@ let session = null;        // { mode, date, practiceSeed }
 let game = null;
 let selected = null;
 let savedPractice = null;  // resumable practice snapshot offered on the start screen
-let freshCtx = null;       // { source, keyStore, key, aborter } — live Fresh game only
+let freshCtx = null;       // { source, keyStore, key, tokenMeta, aborter } — live Fresh game only
+let byopCallbackSettled = false; // single-shot OAuth callback guard (replay/dup-init safe)
 
 function randomSeed() {
   return Math.floor(Math.random() * 0x7fffffff);
@@ -42,19 +49,152 @@ function storeFor(mode) {
   return null; // fresh: never persisted
 }
 
-// Abort any in-flight Fresh requests and drop every key reference.
-// Called on Exit, on mode switch, and on 401. Late arrivals are ignored
-// via the source generation counter + the aborter identity check.
+// Abort any in-flight Fresh requests and drop in-memory key references.
+// Called on Exit and on mode switch. The stored connection (sessionStorage
+// vault) is KEPT — only Disconnect, expiry, or auth rejection clears it.
+// Late arrivals are ignored via the source generation counter + the aborter
+// identity check.
 function cleanupFresh() {
   if (!freshCtx) return;
   try { if (freshCtx.aborter) freshCtx.aborter.abort(); } catch (_) { /* ignore */ }
   try { if (freshCtx.source) freshCtx.source.abort(); } catch (_) { /* ignore */ }
-  try { if (freshCtx.keyStore) freshCtx.keyStore.clear(); } catch (_) { /* ignore */ }
   freshCtx.key = null;
+  freshCtx.tokenMeta = null;
   freshCtx = null;
 }
 
+// Drop stored credentials: the vault token plus any pending OAuth
+// transaction. Used by Disconnect, auth rejection, and expiry. Never throws.
+function clearFreshCredentials(keyStore) {
+  try { if (keyStore) keyStore.clear(); } catch (_) { /* ignore */ }
+  try { clearTransaction(defaultByopStore()); } catch (_) { /* ignore */ }
+}
+
+// Capture OAuth callback parameters and scrub them from the URL
+// IMMEDIATELY (also on denial / malformed callbacks), before any further
+// work. Returns the parsed params, or null when this is a plain load.
+// Never logs the URL, code, verifier, or token.
+function captureByopCallback() {
+  let search = '';
+  try {
+    search = location.search || '';
+  } catch (_) {
+    return null;
+  }
+  const params = parseCallback(search);
+  if (!params.present) return null;
+  try {
+    history.replaceState(null, '', location.pathname + (location.hash || ''));
+  } catch (_) { /* URL stays, params are still single-use via the txn */ }
+  return params;
+}
+
+function byopRecoverableMessage(kind) {
+  switch (kind) {
+    case 'denied':
+      return 'Pollinations connection was not approved. Nothing was started — you can try connecting again.';
+    case 'mismatch':
+      return 'The connection reply did not match this tab. Nothing was started — try connecting again.';
+    case 'stale':
+      return 'The connection reply arrived too late. Nothing was started — try connecting again.';
+    case 'duplicate':
+      return 'The connection reply was malformed. Nothing was started — try connecting again.';
+    case 'no-txn':
+      return 'The connection data is gone (already used or the tab reloaded). Try connecting again.';
+    case 'storage':
+      return 'Tab storage is unavailable, so the connection cannot be verified. Daily and Practice still work.';
+    default:
+      return 'The Pollinations connection did not complete. Nothing was started — try connecting again.';
+  }
+}
+
+// Same-page OAuth callback: capture → validate → consume → exchange →
+// start, exactly once. Consent-denied / malformed / stale callbacks show a
+// recoverable message with a connect-again action and never start Fresh.
+async function finishByopCallback(params) {
+  if (byopCallbackSettled) return;
+  byopCallbackSettled = true;
+  hideHud(hudRefs);
+  const claim = claimCallbackTransaction({ params, storage: defaultByopStore(), now: Date.now });
+  if (!claim.ok) {
+    showFreshSetup(byopRecoverableMessage(claim.kind));
+    return;
+  }
+  // The transaction is already consumed (deleted before exchange), so a
+  // reload or replay during the exchange below cannot re-exchange the code.
+  {
+    const cost = buildCostNotice(BYOP_DEVELOPER_EARNINGS_ENABLED);
+    renderFreshSetup(app, {
+      notice: 'Completing the Pollinations connection…',
+      connected: false,
+      storageBlocked: false,
+      earningsEnabled: BYOP_DEVELOPER_EARNINGS_ENABLED,
+      costKo: cost.ko,
+      costEn: cost.en,
+      earningsKo: FRESH_EARNINGS_NOTICE_KO,
+      earningsEn: FRESH_EARNINGS_NOTICE_EN,
+      onConnect: () => {},
+      onStart: () => {},
+      onDisconnect: () => {},
+      onCancel: () => {},
+      busy: true,
+    });
+  }
+  let ex = null;
+  try {
+    ex = await exchangeCode({
+      code: claim.code,
+      verifier: claim.verifier,
+      fetchImpl: (...a) => fetch(...a),
+      now: Date.now,
+    });
+  } catch (_) {
+    ex = { ok: false, reason: 'network' };
+  }
+  if (!ex || !ex.ok) {
+    // Exchange failed: the code is single-use and already consumed, so a
+    // new connection (not a replay) is required.
+    showFreshSetup('Pollinations could not finish the connection. Nothing was started — try Connect again.');
+    return;
+  }
+  const keyStore = createKeyStore();
+  keyStore.save(ex.token); // session vault, memory fallback after exchange is fine
+  startFresh(keyStore, { token: ex.token, expiresAt: ex.expiresAt, obtainedAt: ex.obtainedAt });
+}
+
+// Begin the OAuth connect: stage a short-lived PKCE transaction, then leave
+// in the SAME tab (no opener). Storage failure stops safely here — an
+// in-memory verifier cannot survive the redirect.
+async function connectFresh() {
+  let begun = null;
+  try {
+    begun = await beginTransaction({ storage: defaultByopStore(), now: Date.now });
+  } catch (_) {
+    begun = { ok: false, reason: 'error' };
+  }
+  if (!begun || !begun.ok) {
+    showFreshSetup(begun && begun.reason === 'storage'
+      ? 'This browser blocks tab storage, so the Pollinations redirect cannot return safely. Connection is unavailable here — Daily and Practice still work.'
+      : 'The connection could not start. Try again — Daily and Practice still work.');
+    return;
+  }
+  try {
+    location.assign(begun.url);
+  } catch (_) {
+    try { clearTransaction(defaultByopStore()); } catch (_) { /* ignore */ }
+    showFreshSetup('The connection could not start. Try again — Daily and Practice still work.');
+  }
+}
+
+function disconnectFresh() {
+  if (freshCtx && freshCtx.keyStore) clearFreshCredentials(freshCtx.keyStore);
+  else clearFreshCredentials(createKeyStore());
+  cleanupFresh();
+  showFreshSetup('Disconnected from Pollinations. The key and connection data were removed from this tab.');
+}
+
 async function boot() {
+  const cbParams = captureByopCallback(); // parse + scrub the URL first
   try {
     bank = await loadBank();
     models = modelMap(bank);
@@ -68,6 +208,12 @@ async function boot() {
   // Read the practice snapshot on every boot path so a resumable game is
   // offered even when today's daily resumes automatically first.
   savedPractice = loadFreshPractice();
+
+  // Same-page OAuth callback takes precedence over every resume path.
+  if (cbParams) {
+    await finishByopCallback(cbParams);
+    return;
+  }
 
   // Today's daily resumes automatically (Wordle-style).
   const daily = storeDaily.load();
@@ -157,31 +303,43 @@ function showFreshSetup(notice) {
   game = null;
   hideHud(hudRefs);
   const keyStore = createKeyStore();
+  const connected = canStartFresh({ token: keyStore.load() });
+  const cost = buildCostNotice(BYOP_DEVELOPER_EARNINGS_ENABLED);
   renderFreshSetup(app, {
     notice,
-    setupError: notice,
-    storeMode: keyStore.storeMode(),
-    costKo: FRESH_COST_NOTICE_KO,
-    costEn: FRESH_COST_NOTICE_EN,
-    onStart: ({ key, consent }) => {
-      if (!canStartFresh({ key, consent })) {
-        showFreshSetup('Enter your API key and tick the cost consent checkbox to start.');
-        return;
-      }
-      keyStore.save(key);
-      startFresh(keyStore);
-    },
+    connected,
+    storageBlocked: !defaultByopStore(),
+    earningsEnabled: BYOP_DEVELOPER_EARNINGS_ENABLED,
+    costKo: cost.ko,
+    costEn: cost.en,
+    earningsKo: FRESH_EARNINGS_NOTICE_KO,
+    earningsEn: FRESH_EARNINGS_NOTICE_EN,
+    onConnect: connectFresh,
+    onStart: () => startFreshFromStore(createKeyStore()),
+    onDisconnect: disconnectFresh,
     onCancel: showStart,
-    onDeleteKey: () => keyStore.clear(),
   });
 }
 
-function startFresh(keyStore) {
-  const key = keyStore.load();
-  if (!key) {
-    showFreshSetup('The key could not be read back. Type it again to start.');
+// Start from the stored connection. Expired tokens are cleared and never
+// used — renewal is a fresh Connect (there are no refresh tokens).
+function startFreshFromStore(keyStore) {
+  const token = keyStore.load();
+  if (!canStartFresh({ token })) {
+    clearFreshCredentials(keyStore);
+    showFreshSetup('The connection is gone. Reconnect with Pollinations to play Fresh.');
     return;
   }
+  startFresh(keyStore, { token, expiresAt: null, obtainedAt: Date.now() });
+}
+
+function startFresh(keyStore, tokenMeta) {
+  if (!tokenUsable(tokenMeta, Date.now)) {
+    clearFreshCredentials(keyStore);
+    showFreshSetup('The Pollinations connection expired. Reconnect with Pollinations to play Fresh.');
+    return;
+  }
+  const key = tokenMeta.token;
   let source;
   try {
     source = createFreshSource({ bank, seed: randomSeed(), fetchImpl: (...a) => fetch(...a) });
@@ -192,7 +350,7 @@ function startFresh(keyStore) {
   session = { mode: 'fresh' };
   game = createGame(source.getShells());
   selected = null;
-  freshCtx = { source, keyStore, key, aborter: null };
+  freshCtx = { source, keyStore, key, tokenMeta, aborter: null };
   fetchFreshRound(0);
 }
 
@@ -230,15 +388,41 @@ async function fetchFreshRound(i) {
     return;
   }
   if (res.kind === 'auth') {
-    // 401/403: cancel everything, delete the key, never auto-retry.
+    // Rejected credentials: cancel everything, delete the connection, never
+    // auto-retry. The setup screen is the Reconnect prompt.
+    const ks = ctx.keyStore;
     cleanupFresh();
-    showFreshSetup('That key was rejected by the API (unauthorized). It has been deleted — check the key and try again. No score was recorded.');
+    clearFreshCredentials(ks);
+    showFreshSetup('Pollinations rejected the connection (unauthorized). It has been removed — Reconnect with Pollinations to try again. No score was recorded.');
+    return;
+  }
+  if (res.kind === 'budget' || res.kind === 'forbidden') {
+    // Terminal spending/permission failure: stop new requests (the source
+    // latches), in-flight requests were aborted, useful results stay in the
+    // usage count. No retry is offered — exiting discards the unplayed round.
+    const failedNames = (res.failedKeys || []).map(freshModelName);
+    const title = res.kind === 'budget' ? 'Budget reached — stopped' : 'Not allowed — stopped';
+    const message = res.kind === 'budget'
+      ? 'Pollinations reported a spending/budget failure (402). No new requests will be sent. Check your budget or top up, then reconnect — requests already sent may still be billed.'
+      : 'Pollinations refused this request (403' +
+        (res.detail ? ': ' + res.detail : '') +
+        '). This can mean a permissions or model restriction, not just an empty budget. No new requests will be sent — requests already sent may still be billed.';
+    updateHud(hudRefs, game.state(), game.size);
+    renderFreshError(app, {
+      title,
+      message,
+      failedNames,
+      usage: ctx.source.getUsage(),
+      terminal: true,
+      onDisconnect: disconnectFresh,
+      onExit: exitFresh,
+    });
     return;
   }
   if (res.kind === 'aborted') return; // exit path already handled
   if (res.kind === 'no-key') {
     cleanupFresh();
-    showFreshSetup('The key is gone. Type it again to start Fresh.');
+    showFreshSetup('The connection is gone. Reconnect with Pollinations to play Fresh.');
     return;
   }
   const failedNames = (res.failedKeys || []).map(freshModelName);

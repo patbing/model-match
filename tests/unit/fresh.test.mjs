@@ -401,11 +401,11 @@ test('B.5-10: static modules contain no gen-API or fresh references', () => {
 });
 
 // Extras: start gate, response validation, status mapping, plan shape, full-game cost.
-test('start gate needs a key plus explicit consent', () => {
-  assert.equal(canStartFresh({ key: '', consent: true }), false);
-  assert.equal(canStartFresh({ key: 'K', consent: false }), false);
-  assert.equal(canStartFresh({ key: 'K', consent: true }), true);
-  assert.equal(canStartFresh({ key: null, consent: true }), false);
+test('start gate needs a connected token', () => {
+  assert.equal(canStartFresh({ token: '' }), false);
+  assert.equal(canStartFresh({ token: null }), false);
+  assert.equal(canStartFresh({}), false);
+  assert.equal(canStartFresh({ token: 'sk_x' }), true);
 });
 
 test('extractFreshText rejects empty payloads; echo is advisory-only (live contract)', () => {
@@ -433,9 +433,10 @@ test('extractFreshText accepts all live versioned echoes (2026-10-14 실측)', (
   }
 });
 
-test('errorKindForStatus maps auth/rate/other', () => {
+test('errorKindForStatus maps auth/budget/forbidden/rate/other', () => {
   assert.equal(errorKindForStatus(401), 'auth');
-  assert.equal(errorKindForStatus(403), 'auth');
+  assert.equal(errorKindForStatus(402), 'budget');
+  assert.equal(errorKindForStatus(403), 'forbidden');
   assert.equal(errorKindForStatus(429), 'rate');
   assert.equal(errorKindForStatus(500), 'retryable');
   assert.equal(errorKindForStatus(0), 'retryable');
@@ -463,13 +464,21 @@ test('a full fresh game costs exactly 20 requests when nothing fails', async () 
   assert.deepEqual(src.getUsage(), { requests: 20, succeeded: 20, failed: 0 });
 });
 
-test('fresh setup ids: rendered toggle id matches lookup (regression)', () => {
-  // 2026-10-14 실버그: 렌더 id(btn-key-visibility)와 조회 id(fresh-key-visibility)
-  // 불일치로 Start가 TypeError로 죽었음. 쌍 존재를 고정해 재발 방지.
+test('fresh setup ids: connect/disconnect render/lookup pairs (BYOP, no paste UI)', () => {
+  // Pasted-key path was replaced by BYOP connect: no key input, no consent
+  // checkbox, no show/delete key buttons may remain.
   const viewSrc = readFileSync(join(root, 'src', 'view.js'), 'utf8');
-  assert.ok(viewSrc.includes('id="btn-key-visibility"'));
-  assert.ok(viewSrc.includes("getElementById('btn-key-visibility')"));
-  assert.ok(!viewSrc.includes('fresh-key-visibility'));
+  assert.ok(viewSrc.includes('id="btn-fresh-connect"'));
+  assert.ok(viewSrc.includes('id="btn-fresh-start"'));
+  assert.ok(viewSrc.includes('id="btn-fresh-disconnect"'));
+  assert.ok(viewSrc.includes('id="btn-fresh-cancel"'));
+  assert.ok(viewSrc.includes('id="fresh-cost-ko"'));
+  assert.ok(viewSrc.includes('id="fresh-cost-en"'));
+  assert.ok(viewSrc.includes('id="fresh-earnings-ko"'));
+  assert.ok(viewSrc.includes('id="fresh-earnings-en"'));
+  assert.ok(!viewSrc.includes('fresh-key'));
+  assert.ok(!viewSrc.includes('fresh-consent'));
+  assert.ok(!viewSrc.includes('btn-key-visibility'));
 });
 
 test('fetchOneModel never retries and never leaks the key', async () => {
@@ -482,4 +491,106 @@ test('fetchOneModel never retries and never leaks the key', async () => {
   assert.equal(r.ok, false);
   assert.equal(calls.length, 1);
   assert.ok(!JSON.stringify(r).includes('SECRET'));
+});
+
+// BYOP-7a: 402 is a terminal budget failure — stops, preserves, latches.
+test('402 budget failure stops new requests and preserves nothing-scored', async () => {
+  const calls = [];
+  const src = mkSource(statusFetch(402, { calls }));
+  const res = await src.getRound({ roundIndex: 0, key: 'K', signal: null });
+  assert.equal(res.ok, false);
+  assert.equal(res.kind, 'budget');
+  assert.deepEqual(res.failedKeys.sort(), [...allKeys].sort());
+  assert.deepEqual(res.succeededKeys, []);
+  assert.equal(src.isCommitted(0), false);
+  const n = calls.length;
+  assert.ok(n > 0 && n <= 4);
+  const blocked = await src.getRound({ roundIndex: 1, key: 'K', signal: null });
+  assert.deepEqual([blocked.ok, blocked.kind, blocked.blocked], [false, 'budget', true]);
+  assert.equal(calls.length, n, 'latched budget must not issue further requests');
+});
+
+// BYOP-7b: 403 carries the provider detail; successes are preserved.
+test('403 forbidden carries provider detail and keeps useful results', async () => {
+  const calls = [];
+  const impl = async (url, opts) => {
+    calls.push(JSON.parse(opts.body).model);
+    const body = JSON.parse(opts.body);
+    if (body.model === apiIds[1]) {
+      return {
+        ok: false, status: 403, headers: { get: () => null },
+        json: async () => ({ error: { message: 'model not allowed for this key' } }),
+      };
+    }
+    return {
+      ok: true, status: 200, headers: { get: () => null },
+      json: async () => ({ model: body.model, choices: [{ message: { content: `live ${body.model}` } }] }),
+    };
+  };
+  const src = mkSource(impl, 61);
+  const res = await src.getRound({ roundIndex: 0, key: 'K', signal: null });
+  assert.equal(res.ok, false);
+  assert.equal(res.kind, 'forbidden');
+  assert.equal(res.detail, 'model not allowed for this key');
+  assert.deepEqual(res.failedKeys, [allKeys[1]]);
+  assert.deepEqual(res.succeededKeys.sort(), [allKeys[0], allKeys[2], allKeys[3]].sort());
+  assert.equal(src.isCommitted(0), false);
+  assert.deepEqual(src.getUsage(), { requests: 4, succeeded: 3, failed: 1 });
+  const blocked = await src.getRound({ roundIndex: 0, key: 'K', signal: null });
+  assert.deepEqual([blocked.kind, blocked.blocked], ['forbidden', true]);
+  assert.equal(calls.length, 4);
+});
+
+// BYOP-7c: a terminal failure aborts its slower siblings.
+test('one 402 aborts slower sibling requests', async () => {
+  const seen = [];
+  const impl = async (url, opts) => {
+    const body = JSON.parse(opts.body);
+    seen.push({ model: body.model, signal: opts.signal });
+    if (body.model === apiIds[0]) {
+      return { ok: false, status: 402, headers: { get: () => null }, json: async () => ({}) };
+    }
+    await sleep(40);
+    return {
+      ok: true, status: 200, headers: { get: () => null },
+      json: async () => ({ model: body.model, choices: [{ message: { content: 'late' } }] }),
+    };
+  };
+  const src = mkSource(impl, 62);
+  const res = await src.getRound({ roundIndex: 0, key: 'K', signal: null });
+  assert.equal(res.kind, 'budget');
+  const slow = seen.filter((s) => s.model !== apiIds[0]);
+  assert.equal(slow.length, 3);
+  assert.ok(slow.every((s) => s.signal && s.signal.aborted === true));
+});
+
+// BYOP-7d: provider detail is best-effort, truncated, and never the key.
+test('403 detail extraction is defensive', async () => {
+  async function detailFor(payload) {
+    const impl = async () => ({
+      ok: false, status: 403, headers: { get: () => null }, json: async () => payload,
+    });
+    const r = await fetchOneModel({
+      fetchImpl: impl, modelId: apiIds[0], modelKey: allKeys[0],
+      promptText: 'p', key: 'SECRET', signal: null, timeoutMs: 200,
+    });
+    assert.equal(r.kind, 'forbidden');
+    return r.detail;
+  }
+  assert.equal(await detailFor({}), null);
+  assert.equal(await detailFor({ error: { code: 'model_blocked' } }), 'model_blocked');
+  assert.equal(await detailFor({ message: 'nope' }), 'nope');
+  const long = await detailFor({ error: { message: 'x'.repeat(500) } });
+  assert.equal(long.length, 200);
+  // With a benign provider message, the whole result carries no key text.
+  const clean = await fetchOneModel({
+    fetchImpl: async () => ({
+      ok: false, status: 403, headers: { get: () => null },
+      json: async () => ({ error: { message: 'quota exceeded for project' } }),
+    }),
+    modelId: apiIds[0], modelKey: allKeys[0],
+    promptText: 'p', key: 'SECRET', signal: null, timeoutMs: 200,
+  });
+  assert.equal(clean.detail, 'quota exceeded for project');
+  assert.ok(!JSON.stringify(clean).includes('SECRET'));
 });

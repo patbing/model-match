@@ -51,10 +51,10 @@ export function renderStart(app, { continueAvailable, onDaily, onPractice, onFre
       <button id="btn-practice">Practice: random rounds</button>
     </div>
     <div class="actions" style="margin-top:10px">
-      <button class="ghost" id="btn-fresh">Fresh: live answers (uses your API key)</button>
+      <button class="ghost" id="btn-fresh">Fresh: live answers (Pollinations connection)</button>
     </div>
     ${continueAvailable ? '<div class="actions" style="margin-top:10px"><button class="ghost" id="btn-continue">Continue saved game</button></div>' : ''}
-    <p class="small" style="margin-top:12px">Today's challenge is the same for everyone, every day (UTC). Shared scores show only the pattern — no spoilers. Fresh generates answers live and bills your API key; Daily and Practice never call the API.</p>
+    <p class="small" style="margin-top:12px">Today's challenge is the same for everyone, every day (UTC). Shared scores show only the pattern — no spoilers. Fresh generates answers live through your Pollinations connection and bills your account; Daily and Practice never call the API.</p>
   </section>`;
   document.getElementById('btn-daily').addEventListener('click', onDaily);
   document.getElementById('btn-practice').addEventListener('click', onPractice);
@@ -153,64 +153,68 @@ export function renderResult(app, { state, modeLabel, dateLabel, bankLabelText, 
   document.getElementById('btn-home').addEventListener('click', onHome);
 }
 
-export function renderFreshSetup(app, { notice, storeMode, setupError, costKo, costEn, onStart, onCancel, onDeleteKey }) {
+export function renderFreshSetup(app, {
+  notice, connected, storageBlocked, earningsEnabled, busy,
+  costKo, costEn, earningsKo, earningsEn,
+  onConnect, onStart, onDisconnect, onCancel,
+}) {
   app.innerHTML = `
   <section class="card">
     <div class="kicker">Fresh — live answers</div>
     <h1>Play with live AI answers</h1>
-    <p class="lead">Fresh reuses bank prompts, but every answer is generated live with your Pollinations API key — one round at a time, 4 requests per round.</p>
-    <label class="small" for="fresh-key">API key (kept in this tab only, never saved to disk)</label>
-    <div class="actions" style="margin-top:6px">
-      <input id="fresh-key" type="password" autocomplete="off" spellcheck="false"
-        placeholder="Paste your Pollinations API key"
-        style="font:inherit;padding:14px 16px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--text);width:100%">
-    </div>
-    <div class="actions two" style="margin-top:10px">
-      <button class="ghost" id="btn-key-visibility" type="button">Show key</button>
-      <button class="ghost" id="btn-key-delete" type="button">Delete key</button>
-    </div>
+    <p class="lead">Fresh reuses bank prompts, but every answer is generated live through your Pollinations connection — one round at a time, 4 requests per round. Connecting opens Pollinations in this tab and returns here automatically.</p>
     <p class="small" id="fresh-store-note"></p>
-    <label class="small" style="display:flex;gap:8px;align-items:flex-start;margin-top:10px">
-      <input id="fresh-consent" type="checkbox" style="min-height:20px;width:20px">
-      <span>I understand API usage is billed to me, including failed, retried, and cancelled requests.</span>
-    </label>
     <p class="small" id="fresh-cost-ko"></p>
     <p class="small" id="fresh-cost-en"></p>
+    <p class="small" id="fresh-earnings-ko" hidden></p>
+    <p class="small" id="fresh-earnings-en" hidden></p>
     <p class="small" id="fresh-setup-error" role="alert"></p>
     <div class="actions two" style="margin-top:14px">
-      <button class="primary" id="btn-fresh-start" disabled>Start Fresh (5 rounds)</button>
+      ${connected
+        ? '<button class="primary" id="btn-fresh-start">Start Fresh (5 rounds)</button>'
+        : '<button class="primary" id="btn-fresh-connect">Connect with Pollinations</button>'}
+      ${connected ? '<button class="ghost" id="btn-fresh-disconnect">Disconnect</button>' : ''}
       <button class="ghost" id="btn-fresh-cancel">Back</button>
     </div>
   </section>`;
-  const keyInput = document.getElementById('fresh-key');
-  const consent = document.getElementById('fresh-consent');
-  const startBtn = document.getElementById('btn-fresh-start');
-  const errEl = document.getElementById('fresh-setup-error');
   document.getElementById('fresh-cost-ko').textContent = costKo;
   document.getElementById('fresh-cost-en').textContent = costEn;
-  document.getElementById('fresh-store-note').textContent = storeMode === 'memory'
-    ? 'Tab storage is blocked in this browser, so the key is held in memory only and is forgotten when you leave this screen.'
-    : 'The key is kept in one sessionStorage item for this tab only. Leaving Fresh or deleting the key removes it.';
-  function refresh() {
-    startBtn.disabled = !(keyInput.value.length > 0 && consent.checked);
-    if (setupError) errEl.textContent = setupError;
+  const earnKo = document.getElementById('fresh-earnings-ko');
+  const earnEn = document.getElementById('fresh-earnings-en');
+  if (earningsEnabled) {
+    earnKo.hidden = false;
+    earnEn.hidden = false;
+    earnKo.textContent = earningsKo;
+    earnEn.textContent = earningsEn;
   }
-  keyInput.addEventListener('input', () => { setupError = ''; errEl.textContent = ''; refresh(); });
-  consent.addEventListener('change', refresh);
-  document.getElementById('btn-key-visibility').addEventListener('click', (e) => {
-    const show = keyInput.type === 'password';
-    keyInput.type = show ? 'text' : 'password';
-    e.currentTarget.textContent = show ? 'Hide key' : 'Show key';
-  });
-  document.getElementById('btn-key-delete').addEventListener('click', () => {
-    keyInput.value = '';
-    try { onDeleteKey(); } finally { setupError = ''; refresh(); }
-  });
-  document.getElementById('btn-fresh-cancel').addEventListener('click', onCancel);
-  document.getElementById('btn-fresh-start').addEventListener('click', () => {
-    onStart({ key: keyInput.value, consent: consent.checked });
-  });
-  refresh();
+  document.getElementById('fresh-store-note').textContent = storageBlocked
+    ? 'Tab storage is blocked in this browser, so the Pollinations redirect cannot return safely — connection is unavailable here. Daily and Practice still work.'
+    : (connected
+      ? 'Connected. The key is kept in one sessionStorage item for this tab only. Leaving Fresh keeps it; Disconnect removes it.'
+      : 'No key is typed or stored here. Connecting issues a Pollinations key for this tab only.');
+  const errEl = document.getElementById('fresh-setup-error');
+  if (notice) errEl.textContent = notice;
+  const lock = Boolean(busy);
+  const connectBtn = document.getElementById('btn-fresh-connect');
+  if (connectBtn) {
+    connectBtn.disabled = lock || Boolean(storageBlocked);
+    connectBtn.addEventListener('click', onConnect);
+  }
+  const startBtn = document.getElementById('btn-fresh-start');
+  if (startBtn) {
+    startBtn.disabled = lock;
+    startBtn.addEventListener('click', onStart);
+  }
+  const discBtn = document.getElementById('btn-fresh-disconnect');
+  if (discBtn) {
+    discBtn.disabled = lock;
+    discBtn.addEventListener('click', onDisconnect);
+  }
+  const cancelBtn = document.getElementById('btn-fresh-cancel');
+  if (cancelBtn) {
+    cancelBtn.disabled = lock;
+    cancelBtn.addEventListener('click', onCancel);
+  }
 }
 
 export function renderFreshLoading(app, { idx, total, usage, onExit }) {
@@ -228,7 +232,8 @@ export function renderFreshLoading(app, { idx, total, usage, onExit }) {
   document.getElementById('btn-fresh-exit').addEventListener('click', onExit);
 }
 
-export function renderFreshError(app, { title, message, failedNames, usage, retryAfter, onRetry, onExit }) {
+export function renderFreshError(app, { title, message, failedNames, usage, retryAfter, onRetry, onExit, terminal, onDisconnect }) {
+  const isTerminal = terminal === true;
   app.innerHTML = `
   <section class="card">
     <div class="kicker">Fresh · round paused — not scored</div>
@@ -237,7 +242,9 @@ export function renderFreshError(app, { title, message, failedNames, usage, retr
     <p class="small" id="fresh-err-failed"></p>
     <p class="small" id="fresh-usage"></p>
     <div class="actions two" style="margin-top:14px">
-      <button class="primary" id="btn-fresh-retry">Retry failed answers</button>
+      ${isTerminal
+        ? '<button class="ghost" id="btn-fresh-disconnect">Disconnect</button>'
+        : '<button class="primary" id="btn-fresh-retry">Retry failed answers</button>'}
       <button class="ghost" id="btn-fresh-exit">Exit Fresh</button>
     </div>
   </section>`;
@@ -245,11 +252,17 @@ export function renderFreshError(app, { title, message, failedNames, usage, retr
   document.getElementById('fresh-err-message').textContent = message;
   document.getElementById('fresh-err-failed').textContent =
     failedNames && failedNames.length
-      ? `Still missing: ${failedNames.join(', ')}. Answers already received are kept — retry fetches only the missing ones.` +
-        (retryAfter !== null && retryAfter !== undefined ? ` The server asked to wait ${retryAfter}s before retrying.` : '')
+      ? (isTerminal
+        ? `Still missing: ${failedNames.join(', ')}. Answers already received are counted below — exiting discards this unplayed round, it is never scored.`
+        : `Still missing: ${failedNames.join(', ')}. Answers already received are kept — retry fetches only the missing ones.` +
+          (retryAfter !== null && retryAfter !== undefined ? ` The server asked to wait ${retryAfter}s before retrying.` : ''))
       : '';
   setFreshUsage(usage);
-  document.getElementById('btn-fresh-retry').addEventListener('click', onRetry);
+  if (!isTerminal) {
+    document.getElementById('btn-fresh-retry').addEventListener('click', onRetry);
+  } else if (typeof onDisconnect === 'function') {
+    document.getElementById('btn-fresh-disconnect').addEventListener('click', onDisconnect);
+  }
   document.getElementById('btn-fresh-exit').addEventListener('click', onExit);
 }
 

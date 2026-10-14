@@ -14,7 +14,7 @@
 - Pick the model you think wrote it. Correct = 100 points; streaks add +10 / +20 / +30 / +40 (max 600).
 - Every reveal shows all four answers plus each model's style notes.
 - **Daily challenge**: the same five rounds for everyone, seeded by the UTC date + bank version. Practice mode picks random rounds.
-- Runs entirely in the browser. **Daily and Practice: no API calls while you play and no keys in this repository** — answers were pre-generated once, at build time, with the [Pollinations API](https://pollinations.ai). The optional **Fresh mode** generates answers live via the Pollinations API with your own key (per-round cost notice in-app).
+- Runs entirely in the browser. **Daily and Practice: no API calls while you play and no keys in this repository** — answers were pre-generated once, at build time, with the [Pollinations API](https://pollinations.ai). The optional **Fresh mode** generates answers live via the Pollinations API through your Pollinations connection (OAuth, per-round cost notice in-app).
 
 ## The answers bank
 

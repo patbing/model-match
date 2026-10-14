@@ -18,13 +18,38 @@ export const FRESH_MAX_TOKENS = 1500;
 export const FRESH_TIMEOUT_MS = 60000;
 export const FRESH_ROUND_COUNT = 5;
 
-// Cost notice. The Korean text is quoted verbatim from the approved design
-// (Sol B.4) and must stay directly above the Start button; the English
-// version is a translation for the English UI.
+// Cost notice. The Korean text states the OAuth-connect disclosure required
+// by the BYOP design (Sol B.4 + BYOP spending disclosure): budget/duration
+// requested at connect time, per-round request counts, and that failed /
+// retried / cancelled — including already-sent — requests may still cost.
+// Budget unit (USD) and key lifetime (days) are the documented connect
+// parameters (budget=5, expiry=7); re-verify against provider docs if the
+// authorize contract changes. The English version is a translation.
+// Both stay directly above the Start/Connect button (existing convention).
 export const FRESH_COST_NOTICE_KO =
-  'Fresh는 입력한 키로 Pollinations API를 직접 호출합니다. API 사용료는 플레이어 부담이며, 계정·모델 정책에 따라 발생할 수 있습니다. 기본 요청은 라운드당 4회, 5라운드 총 20회입니다. 실패·재시도·취소된 요청도 비용이 발생할 수 있습니다. Daily와 Practice는 키 없이 사용할 수 있습니다.';
+  'Fresh는 Pollinations 연결로 발급된 키로 API를 직접 호출합니다. API 사용료는 플레이어 부담이며, 계정·모델 정책에 따라 발생할 수 있습니다. 연결 시 요청하는 예산은 5 USD, 키 유효기간은 7일입니다. 기본 요청은 라운드당 4회, 5라운드 총 20회입니다. 실패·재시도·취소된 요청도 비용이 발생할 수 있으며, 이미 전송된 요청은 취소해도 과금될 수 있습니다. Daily와 Practice는 연결 없이 사용할 수 있습니다.';
 export const FRESH_COST_NOTICE_EN =
-  'Fresh calls the Pollinations API directly with the key you enter. API usage is billed to you under your account and model policy. A full game makes 4 requests per round, 20 for 5 rounds. Failed, retried, and cancelled requests may still cost you. Daily and Practice never need a key.';
+  'Fresh calls the Pollinations API directly with a key issued through your Pollinations connection. API usage is billed to you under your account and model policy. Connecting requests a budget of 5 USD and a key valid for 7 days. A full game makes 4 requests per round, 20 for 5 rounds. Failed, retried, and cancelled requests may still cost you, including requests already sent. Daily and Practice never need a connection.';
+// Developer-earnings disclosure (+25%). Shown ONLY when developer earnings
+// are explicitly enabled — never silently. See buildCostNotice.
+export const FRESH_EARNINGS_NOTICE_KO =
+  '개발자 수익 분배가 켜져 있습니다. 사용료의 25%가 개발자에게 추가로 배분됩니다.';
+export const FRESH_EARNINGS_NOTICE_EN =
+  'Developer earnings are on: an extra 25% of usage goes to the developer.';
+
+// Compose the cost notice for the Fresh setup screen. Earnings-off returns
+// the base disclosure; earnings-on appends the +25% sentence.
+export function buildCostNotice(earningsEnabled) {
+  const on = earningsEnabled === true;
+  return {
+    ko: on
+      ? FRESH_COST_NOTICE_KO + ' ' + FRESH_EARNINGS_NOTICE_KO
+      : FRESH_COST_NOTICE_KO,
+    en: on
+      ? FRESH_COST_NOTICE_EN + ' ' + FRESH_EARNINGS_NOTICE_EN
+      : FRESH_COST_NOTICE_EN,
+  };
+}
 
 function defaultSessionStore() {
   try {
@@ -79,10 +104,11 @@ export function createKeyStore(backing = undefined) {
   return { save, load, clear, storeMode };
 }
 
-// Start gate: explicit consent checkbox + non-empty key. No local key
-// validation is attempted — auth success is never faked locally.
-export function canStartFresh({ key, consent }) {
-  return typeof key === 'string' && key.length > 0 && consent === true;
+// Start gate: a non-empty connected token (BYOP OAuth vault). Expiry is
+// checked separately via byop.tokenUsable — an unknown expiry (pre-existing
+// session token) starts, and authentication failures clear it.
+export function canStartFresh({ token }) {
+  return typeof token === 'string' && token.length > 0;
 }
 
 export function isAllowedFreshUrl(url) {
@@ -156,9 +182,29 @@ export function extractFreshText(payload, _expectedModelId) {
 }
 
 export function errorKindForStatus(status) {
-  if (status === 401 || status === 403) return 'auth';
+  if (status === 401) return 'auth';
+  if (status === 402) return 'budget'; // spending/budget failure: stop, no retry
+  if (status === 403) return 'forbidden'; // permissions/model restriction: see provider detail
   if (status === 429) return 'rate';
   return 'retryable';
+}
+
+// Best-effort provider error detail for 403 responses (may carry the
+// permissions/model restriction explanation). Strings only, truncated —
+// the returned object never contains the key.
+async function providerDetailOf(res) {
+  try {
+    const payload = res && typeof res.json === 'function' ? await res.json() : null;
+    const err = payload && payload.error;
+    const text = typeof err === 'string' ? err
+      : err && typeof err.message === 'string' ? err.message
+      : err && typeof err.code === 'string' ? err.code
+      : (payload && typeof payload.message === 'string' ? payload.message : null);
+    if (typeof text !== 'string' || text.trim().length === 0) return null;
+    return text.trim().slice(0, 200);
+  } catch (_) {
+    return null;
+  }
 }
 
 function retryAfterOf(res) {
@@ -230,7 +276,14 @@ export async function fetchOneModel({
       return { modelKey, modelId, ok: false, kind: timedOut ? 'timeout' : 'aborted' };
     }
     const status = res ? res.status : 0;
-    if (status === 401 || status === 403) return { modelKey, modelId, ok: false, kind: 'auth', status };
+    if (status === 401) return { modelKey, modelId, ok: false, kind: 'auth', status };
+    if (status === 402) return { modelKey, modelId, ok: false, kind: 'budget', status };
+    if (status === 403) {
+      return {
+        modelKey, modelId, ok: false, kind: 'forbidden', status,
+        detail: await providerDetailOf(res),
+      };
+    }
     if (status === 429) {
       return { modelKey, modelId, ok: false, kind: 'rate', status, retryAfter: retryAfterOf(res) };
     }
@@ -303,7 +356,16 @@ export function createFreshSource({
   const committed = rounds.map(() => false);
   const usage = { requests: 0, succeeded: 0, failed: 0 };
   let gen = 0; // bumped by abort(); late results from older gens are stale
-  let authFailed = false; // latched on 401/403: no further requests, no auto retry
+  // Latched terminal failure (first kind wins): no further requests, no
+  // auto retry. 'auth' = rejected credentials, 'budget' = 402 spending
+  // failure, 'forbidden' = 403 permissions/model restriction.
+  let stoppedKind = null;
+
+  // Terminal kinds stop the round: no new requests, in-flight siblings are
+  // aborted where possible, and successes already received are preserved.
+  function isTerminalKind(kind) {
+    return kind === 'auth' || kind === 'budget' || kind === 'forbidden';
+  }
 
   function getShells() {
     return rounds;
@@ -324,7 +386,7 @@ export function createFreshSource({
   }
 
   async function getRound({ roundIndex, key, signal }) {
-    if (authFailed) return { ok: false, kind: 'auth', blocked: true };
+    if (stoppedKind) return { ok: false, kind: stoppedKind, blocked: true };
     if (!Number.isInteger(roundIndex) || roundIndex < 0 || roundIndex >= rounds.length) {
       return { ok: false, kind: 'bad-index' };
     }
@@ -341,8 +403,9 @@ export function createFreshSource({
       return { ok: true, round: commit(roundIndex) };
     }
 
-    // One shared batch signal: a 401 cancels stragglers immediately, and a
-    // caller abort cancels everything. Late arrivals are stale, never committed.
+    // One shared batch signal: a terminal failure cancels stragglers
+    // immediately, and a caller abort cancels everything. Late arrivals
+    // are stale, never committed.
     const batch = new AbortController();
     const onParentAbort = () => {
       try { batch.abort(); } catch (_) { /* ignore */ }
@@ -363,7 +426,7 @@ export function createFreshSource({
           clearTimeoutFn,
           systemPrompt,
         }).then((res) => {
-          if (res.kind === 'auth' && !batch.signal.aborted) {
+          if (isTerminalKind(res.kind) && !batch.signal.aborted) {
             try { batch.abort(); } catch (_) { /* ignore */ }
           }
           if (res.ok) usage.succeeded += 1;
@@ -377,14 +440,17 @@ export function createFreshSource({
         if (res.ok) bag.set(res.modelKey, res.text);
       }
       const failed = results.filter((x) => !x.ok);
-      if (failed.some((x) => x.kind === 'auth')) {
-        authFailed = true; // no auto retry, no further requests
-        return {
+      const terminal = failed.find((x) => isTerminalKind(x.kind));
+      if (terminal) {
+        stoppedKind = terminal.kind; // no auto retry, no further requests
+        const out = {
           ok: false,
-          kind: 'auth',
+          kind: terminal.kind,
           failedKeys: failed.map((x) => x.modelKey),
           succeededKeys: results.filter((x) => x.ok).map((x) => x.modelKey),
         };
+        if (terminal.kind === 'forbidden' && terminal.detail) out.detail = terminal.detail;
+        return out;
       }
       if (failed.length === 0 && apiModels.every((m) => bag.has(m.key))) {
         return { ok: true, round: commit(roundIndex) };
