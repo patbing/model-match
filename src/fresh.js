@@ -30,15 +30,15 @@ export const FRESH_COST_NOTICE_KO =
   'Fresh는 Pollinations 연결로 발급된 키로 API를 직접 호출합니다. API 사용료는 플레이어 부담이며, 계정·모델 정책에 따라 발생할 수 있습니다. 연결 시 요청하는 예산은 5 USD, 키 유효기간은 7일입니다. 기본 요청은 라운드당 4회, 5라운드 총 20회입니다. 실패·재시도·취소된 요청도 비용이 발생할 수 있으며, 이미 전송된 요청은 취소해도 과금될 수 있습니다. Daily와 Practice는 연결 없이 사용할 수 있습니다.';
 export const FRESH_COST_NOTICE_EN =
   'Fresh calls the Pollinations API directly with a key issued through your Pollinations connection. API usage is billed to you under your account and model policy. Connecting requests a budget of 5 USD and a key valid for 7 days. A full game makes 4 requests per round, 20 for 5 rounds. Failed, retried, and cancelled requests may still cost you, including requests already sent. Daily and Practice never need a connection.';
-// Developer-earnings disclosure (+25%). Shown ONLY when developer earnings
+// Developer-earnings disclosure (+20%). Shown ONLY when developer earnings
 // are explicitly enabled — never silently. See buildCostNotice.
 export const FRESH_EARNINGS_NOTICE_KO =
-  '개발자 수익 분배가 켜져 있습니다. 사용료의 25%가 개발자에게 추가로 배분됩니다.';
+  '개발자 수익 분배가 켜져 있습니다. 사용료의 20%가 개발자에게 추가로 배분됩니다.';
 export const FRESH_EARNINGS_NOTICE_EN =
-  'Developer earnings are on: an extra 25% of usage goes to the developer.';
+  'Developer earnings are on: an extra 20% of usage goes to the developer.';
 
 // Compose the cost notice for the Fresh setup screen. Earnings-off returns
-// the base disclosure; earnings-on appends the +25% sentence.
+// the base disclosure; earnings-on appends the +20% sentence.
 export function buildCostNotice(earningsEnabled) {
   const on = earningsEnabled === true;
   return {

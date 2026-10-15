@@ -458,11 +458,11 @@ test('10: cost notice discloses budget, duration, rounds; earnings only when on'
   assert.equal(off.ko, FRESH_COST_NOTICE_KO);
   assert.equal(off.en, FRESH_COST_NOTICE_EN);
   for (const text of [off.ko, off.en]) {
-    assert.ok(!text.includes('25%'), 'earnings-off notice must not mention 25%');
+    assert.ok(!text.includes('20%'), 'earnings-off notice must not mention 20%');
   }
   const on = buildCostNotice(true);
-  assert.ok(on.ko.includes('25%'));
-  assert.ok(on.en.includes('25%'));
+  assert.ok(on.ko.includes('20%'));
+  assert.ok(on.en.includes('20%'));
   assert.ok(on.ko.includes(FRESH_COST_NOTICE_KO));
   assert.ok(on.en.includes(FRESH_COST_NOTICE_EN));
   assert.ok(on.ko.includes(FRESH_EARNINGS_NOTICE_KO));
